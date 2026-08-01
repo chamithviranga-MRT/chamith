@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRONROOT ATHLETIC — Strength &amp; Conditioning</title>
+<meta name="description" content="Strength, conditioning and mobility training. Your first session is on us.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --charcoal: #0e0f0d;
+    --lifted: #181a16;
+    --hairline: #2b2d28;
+    --stroke: #33362f;
+    --bone: #f2f1ea;
+    --muted: #a7a89f;
+    --volt: #d4ff2e;
+    --display: 'Anton', 'Oswald', 'Arial Narrow', sans-serif;
+    --sans: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--charcoal);
+    color: var(--bone);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  .micro {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--charcoal);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .nav__inner {
+    height: 72px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .wordmark {
+    font-family: var(--display);
+    font-size: 20px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bone);
+    border: 2px solid var(--bone);
+    border-radius: 6px;
+    padding: 6px 14px 5px;
+    line-height: 1;
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .nav__links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+    margin-right: auto;
+  }
+
+  .nav__links a {
+    font-size: 15px;
+    color: var(--bone);
+  }
+
+  .nav__links a:hover { color: var(--volt); }
+
+  .btn {
+    display: inline-block;
+    font-family: var(--display);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    border-radius: 999px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .btn--volt {
+    background: var(--volt);
+    color: var(--charcoal);
+    border: 2px solid var(--volt);
+  }
+
+  .btn--volt:hover { background: #c4ef1e; border-color: #c4ef1e; }
+
+  .btn--outline {
+    background: transparent;
+    color: var(--bone);
+    border: 2px solid var(--bone);
+  }
+
+  .btn--outline:hover { border-color: var(--volt); color: var(--volt); }
+
+  .btn--nav { font-size: 15px; padding: 12px 26px 11px; }
+  .btn--lg  { font-size: 18px; padding: 20px 38px 18px; }
+
+  /* ============ HERO ============ */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .hero__inner {
+    position: relative;
+    padding: 48px 0 96px;
+  }
+
+  .hero__toprow {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 72px;
+  }
+
+  .hero__diagonals {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 46%;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 23px,
+      var(--hairline) 23px,
+      var(--hairline) 24px
+    );
+    pointer-events: none;
+  }
+
+  .hero__ghost {
+    position: absolute;
+    right: -60px;
+    bottom: -80px;
+    font-family: var(--display);
+    font-size: 480px;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 3px var(--stroke);
+    text-stroke: 3px var(--stroke);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .hero__content { position: relative; z-index: 1; max-width: 900px; }
+
+  .hero__headline {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(64px, 10vw, 140px);
+    line-height: 0.92;
+    letter-spacing: -0.015em;
+    text-transform: uppercase;
+    color: var(--bone);
+    margin-bottom: 32px;
+  }
+
+  .volt-word { color: var(--volt); }
+
+  .hero__sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 480px;
+    margin-bottom: 40px;
+  }
+
+  .hero__ctas { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  /* ============ MARQUEE ============ */
+  .marquee {
+    background: var(--volt);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    height: 56px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .marquee__track {
+    font-family: var(--display);
+    font-size: 22px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--charcoal);
+    white-space: nowrap;
+    line-height: 1;
+  }
+
+  /* ============ STAT BAND ============ */
+  .stats {
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .stats__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .stat {
+    padding: 64px 32px;
+    border-left: 1px solid var(--hairline);
+    text-align: center;
+  }
+
+  .stat:first-child { border-left: none; }
+
+  .stat__num {
+    font-family: var(--display);
+    font-size: clamp(56px, 6vw, 88px);
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    color: var(--bone);
+    margin-bottom: 16px;
+  }
+
+  .stat__num--volt { color: var(--volt); }
+
+  /* ============ PROGRAMS ============ */
+  .programs { padding: 112px 0; border-bottom: 1px solid var(--hairline); }
+
+  .section-head { margin-bottom: 56px; }
+
+  .section-head .micro { display: block; margin-bottom: 16px; }
+
+  .section-title {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(40px, 5vw, 64px);
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--bone);
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .card {
+    position: relative;
+    background: var(--lifted);
+    border: 1px solid var(--hairline);
+    padding: 40px 32px 32px;
+    display: flex;
+    flex-direction: column;
+    min-height: 340px;
+  }
+
+  .card--popular { border-top: 4px solid var(--volt); }
+
+  .card__tag {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--charcoal);
+    background: var(--volt);
+    padding: 5px 10px 4px;
+    border-radius: 3px;
+  }
+
+  .card__index {
+    font-family: var(--display);
+    font-size: 48px;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--muted);
+    text-stroke: 1.5px var(--muted);
+    margin-bottom: 28px;
+  }
+
+  .card__name {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 30px;
+    line-height: 0.95;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: var(--bone);
+    margin-bottom: 16px;
+  }
+
+  .card__desc {
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: auto;
+    padding-bottom: 32px;
+  }
+
+  .card__meta {
+    display: flex;
+    gap: 24px;
+    border-top: 1px solid var(--hairline);
+    padding-top: 20px;
+  }
+
+  .card__tick {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(135deg, transparent 50%, var(--volt) 50%);
+  }
+
+  /* ============ QUOTE ============ */
+  .quote {
+    padding: 128px 0;
+    border-bottom: 1px solid var(--hairline);
+    text-align: center;
+  }
+
+  .quote__stars {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+
+  .quote__stars svg { display: block; }
+
+  .quote__text {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(32px, 4.5vw, 56px);
+    line-height: 0.98;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: var(--bone);
+    max-width: 900px;
+    margin: 0 auto 40px;
+  }
+
+  .quote__rule {
+    width: 64px;
+    height: 2px;
+    background: var(--bone);
+    margin: 0 auto 24px;
+  }
+
+  /* ============ CTA BAND ============ */
+  .cta-band {
+    padding: 128px 0;
+    border-bottom: 1px solid var(--hairline);
+    text-align: center;
+  }
+
+  .cta-band__headline {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(48px, 8vw, 112px);
+    line-height: 0.92;
+    letter-spacing: -0.015em;
+    text-transform: uppercase;
+    color: var(--bone);
+    margin-bottom: 28px;
+  }
+
+  .cta-band__sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 520px;
+    margin: 0 auto 40px;
+  }
+
+  .cta-band .micro { display: block; margin-top: 24px; }
+
+  /* ============ FOOTER ============ */
+  .footer { padding: 80px 0 40px; }
+
+  .footer__top {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: 48px;
+    padding-bottom: 64px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .footer__brand .wordmark { margin-bottom: 24px; }
+
+  .footer__brand p {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 260px;
+  }
+
+  .footer__col h4 {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .footer__col ul { list-style: none; }
+
+  .footer__col li { margin-bottom: 12px; }
+
+  .footer__col a { font-size: 15px; color: var(--bone); }
+
+  .footer__col a:hover { color: var(--volt); }
+
+  .footer__legal {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding-top: 32px;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1024px) {
+    .stats__grid { grid-template-columns: repeat(2, 1fr); }
+    .stat { border-left: none; border-top: 1px solid var(--hairline); }
+    .stat:nth-child(even) { border-left: 1px solid var(--hairline); }
+    .stat:nth-child(-n+2) { border-top: none; }
+    .cards { grid-template-columns: 1fr; }
+    .card { min-height: 0; }
+    .footer__top { grid-template-columns: 1fr 1fr; }
+    .hero__ghost { font-size: 340px; }
+  }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 0 20px; }
+    .nav__links { display: none; }
+    .nav__inner { justify-content: space-between; }
+    .hero__inner { padding: 40px 0 72px; }
+    .hero__toprow { flex-direction: column; gap: 8px; margin-bottom: 48px; }
+    .hero__diagonals { width: 100%; opacity: 0.5; }
+    .hero__ghost { font-size: 220px; right: -30px; bottom: -40px; }
+    .hero__ctas { flex-direction: column; }
+    .hero__ctas .btn { width: 100%; text-align: center; }
+    .stats__grid { grid-template-columns: 1fr; }
+    .stat { border-left: none !important; padding: 40px 20px; }
+    .stat:first-child { border-top: none; }
+    .programs { padding: 72px 0; }
+    .quote, .cta-band { padding: 80px 0; }
+    .cta-band .btn { width: 100%; max-width: 400px; text-align: center; }
+    .footer__top { grid-template-columns: 1fr; gap: 40px; }
+    .footer__legal { flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <header class="nav">
+    <div class="wrap nav__inner">
+      <a href="#" class="wordmark">Ironroot</a>
+      <ul class="nav__links">
+        <li><a href="#programs">Programs</a></li>
+        <li><a href="#coaches">Coaches</a></li>
+        <li><a href="#schedule">Schedule</a></li>
+        <li><a href="#membership">Membership</a></li>
+        <li><a href="#journal">Journal</a></li>
+      </ul>
+      <a href="#membership" class="btn btn--volt btn--nav">Join Now</a>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero__diagonals" aria-hidden="true"></div>
+    <div class="hero__ghost" aria-hidden="true">01</div>
+    <div class="wrap hero__inner">
+      <div class="hero__toprow">
+        <span class="micro">Strength / Conditioning / Mobility</span>
+        <span class="micro">Est. 2019 &mdash; 4,200 Athletes</span>
+      </div>
+      <div class="hero__content">
+        <h1 class="hero__headline">Train Like<br>It's <span class="volt-word">Earned</span></h1>
+        <p class="hero__sub">Coached strength &amp; conditioning for people who show up. No mirrors, no machines you don't need &mdash; just barbells, programming and progress.</p>
+        <div class="hero__ctas">
+          <a href="#membership" class="btn btn--volt btn--lg">Start Free Session</a>
+          <a href="#programs" class="btn btn--outline btn--lg">View Programs</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DISCIPLINE MARQUEE -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      Strength &nbsp;&#10033;&nbsp; Conditioning &nbsp;&#10033;&nbsp; Mobility &nbsp;&#10033;&nbsp; Olympic Lifting &nbsp;&#10033;&nbsp; Endurance &nbsp;&#10033;&nbsp;
+      Strength &nbsp;&#10033;&nbsp; Conditioning &nbsp;&#10033;&nbsp; Mobility &nbsp;&#10033;&nbsp; Olympic Lifting &nbsp;&#10033;&nbsp; Endurance &nbsp;&#10033;&nbsp;
+      Strength &nbsp;&#10033;&nbsp; Conditioning &nbsp;&#10033;&nbsp; Mobility &nbsp;&#10033;&nbsp; Olympic Lifting &nbsp;&#10033;&nbsp; Endurance &nbsp;&#10033;&nbsp;
+    </div>
+  </div>
+
+  <!-- STAT BAND -->
+  <section class="stats" id="schedule">
+    <div class="stats__grid">
+      <div class="stat">
+        <div class="stat__num">4,200</div>
+        <div class="micro">Athletes Trained</div>
+      </div>
+      <div class="stat">
+        <div class="stat__num">18</div>
+        <div class="micro">Coaches</div>
+      </div>
+      <div class="stat">
+        <div class="stat__num stat__num--volt">92%</div>
+        <div class="micro">Hit Their PR</div>
+      </div>
+      <div class="stat">
+        <div class="stat__num">6</div>
+        <div class="micro">Days a Week</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRAINING PROTOCOLS -->
+  <section class="programs" id="programs">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="micro">Training Protocols</span>
+        <h2 class="section-title">Pick Your Engine</h2>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card__index">01</div>
+          <h3 class="card__name">Strength Base</h3>
+          <p class="card__desc">Barbell fundamentals and progressive overload &mdash; squat, press, pull, repeat.</p>
+          <div class="card__meta">
+            <span class="micro">60 Min</span>
+            <span class="micro">All Levels</span>
+          </div>
+          <div class="card__tick" aria-hidden="true"></div>
+        </article>
+        <article class="card card--popular">
+          <span class="card__tag">Most Popular</span>
+          <div class="card__index">02</div>
+          <h3 class="card__name">Metcon Engine</h3>
+          <p class="card__desc">High-intensity conditioning built to raise your work capacity, week after week.</p>
+          <div class="card__meta">
+            <span class="micro">45 Min</span>
+            <span class="micro">Intermediate</span>
+          </div>
+          <div class="card__tick" aria-hidden="true"></div>
+        </article>
+        <article class="card">
+          <div class="card__index">03</div>
+          <h3 class="card__name">Mobility Reset</h3>
+          <p class="card__desc">Targeted joint prep and recovery work so training days keep stacking.</p>
+          <div class="card__meta">
+            <span class="micro">40 Min</span>
+            <span class="micro">All Levels</span>
+          </div>
+          <div class="card__tick" aria-hidden="true"></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROOF QUOTE -->
+  <section class="quote" id="coaches">
+    <div class="wrap">
+      <div class="quote__stars" aria-label="5 out of 5 stars">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#d4ff2e"><path d="M12 1.8l3.1 6.9 7.1.8-5.3 5 1.5 7.3L12 18l-6.4 3.8 1.5-7.3-5.3-5 7.1-.8z"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#d4ff2e"><path d="M12 1.8l3.1 6.9 7.1.8-5.3 5 1.5 7.3L12 18l-6.4 3.8 1.5-7.3-5.3-5 7.1-.8z"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#d4ff2e"><path d="M12 1.8l3.1 6.9 7.1.8-5.3 5 1.5 7.3L12 18l-6.4 3.8 1.5-7.3-5.3-5 7.1-.8z"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#d4ff2e"><path d="M12 1.8l3.1 6.9 7.1.8-5.3 5 1.5 7.3L12 18l-6.4 3.8 1.5-7.3-5.3-5 7.1-.8z"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#d4ff2e"><path d="M12 1.8l3.1 6.9 7.1.8-5.3 5 1.5 7.3L12 18l-6.4 3.8 1.5-7.3-5.3-5 7.1-.8z"/></svg>
+      </div>
+      <blockquote class="quote__text">&ldquo;I added 40kg to my deadlift in 12 weeks.&rdquo;</blockquote>
+      <div class="quote__rule" aria-hidden="true"></div>
+      <div class="micro">Marcus Vaughn, Member Since 2022</div>
+    </div>
+  </section>
+
+  <!-- MEMBERSHIP CTA -->
+  <section class="cta-band" id="membership">
+    <div class="wrap">
+      <h2 class="cta-band__headline">Your First Session<br>Is <span class="volt-word">On Us</span></h2>
+      <p class="cta-band__sub">Drop in, meet the coaches and train a full session before you decide anything.</p>
+      <a href="#" class="btn btn--volt btn--lg">Claim Your Session</a>
+      <span class="micro">No Contract / Cancel Anytime</span>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer" id="journal">
+    <div class="wrap">
+      <div class="footer__top">
+        <div class="footer__brand">
+          <a href="#" class="wordmark">Ironroot</a>
+          <p>14 Foundry Lane &mdash; Open Mon&ndash;Sat, 05:30&ndash;21:00. Closed Sundays for recovery.</p>
+        </div>
+        <div class="footer__col">
+          <h4>Train</h4>
+          <ul>
+            <li><a href="#programs">Programs</a></li>
+            <li><a href="#schedule">Schedule</a></li>
+            <li><a href="#membership">Membership</a></li>
+            <li><a href="#">Drop-Ins</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4>Club</h4>
+          <ul>
+            <li><a href="#coaches">Coaches</a></li>
+            <li><a href="#journal">Journal</a></li>
+            <li><a href="#">Community</a></li>
+            <li><a href="#">Careers</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4>Contact</h4>
+          <ul>
+            <li><a href="#">hello@ironroot.fit</a></li>
+            <li><a href="#">Instagram</a></li>
+            <li><a href="#">YouTube</a></li>
+            <li><a href="#">Visit Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__legal">
+        <span class="micro">&copy; 2026 Ironroot Athletic. All Rights Reserved.</span>
+        <span class="micro">Privacy / Terms</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
