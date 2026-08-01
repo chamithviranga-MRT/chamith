@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supun — Body Sculpting</title>
+<meta name="description" content="Supun's Body Sculpting — personal training, strength and conditioning.">
+
+<!--
+  ===========================================================================
+  SELF-CONTAINED — save this file anywhere and double-click it. No folder,
+  no server, no internet needed. Everything is embedded.
+  ===========================================================================
+
+  1. THE HEADSHOT              (search below for:  EDIT ME 1 )
+
+     Right now the figure is a placeholder silhouette drawn in code.
+     To use Supun's real photo, pick whichever is easier:
+
+     EASIEST — save his photo next to this file as  supun-headshot.png
+     then change that one line to:
+
+         <img class="front" src="supun-headshot.png" alt="Supun, personal trainer">
+
+     STAYS SELF-CONTAINED — convert the photo to a base64 data URI at
+     base64-image.de (or similar) and paste the whole result in as the src.
+     The file gets bigger but remains a single shareable file.
+
+     Either way the photo should be a BACKGROUND-REMOVED CUTOUT PNG —
+     transparent behind him. That transparency is what lets the big
+     scrolling name pass behind his shoulders. A normal rectangular photo
+     will cover the text and lose the effect.
+
+     If the crop sits wrong, adjust --headshot-position (EDIT ME 2).
+
+  2. THE LINKS                 (search below for:  EDIT ME 3 )
+
+     Fill in the Instagram / TikTok / YouTube URLs, the WhatsApp number and
+     the email. Anything left blank stays inert, so this is safe to send
+     out before every channel exists.
+
+  3. THE BACKDROP              (search below for:  EDIT ME 4 )
+
+     The dark backdrop is drawn with CSS, so it needs no image file. To use
+     a real gym or studio photo instead, follow the note there.
+  ===========================================================================
+-->
+
+<link rel="preconnect" href="https://db.onlinewebfonts.com">
+<link rel="stylesheet" href="https://db.onlinewebfonts.com/c/95cecf452d3208890088a5b4c19c7ecf?family=Helvetica+Neue+ME" media="print" onload="this.media='all'">
+<noscript>
+  <link rel="stylesheet" href="https://db.onlinewebfonts.com/c/95cecf452d3208890088a5b4c19c7ecf?family=Helvetica+Neue+ME">
+</noscript>
+<style>
+  :root {
+    --cream: #efeee9;
+
+    /* EDIT ME 2 — headshot framing. Try "center top" if his head gets
+       cropped, or "center 20%" to pull the figure down. Layout is
+       unaffected by this. */
+    --headshot-position: center center;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Helvetica Neue ME', Helvetica, Arial, sans-serif;
+    background: #000;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; }
+  a { color: inherit; text-decoration: none; }
+  p { margin: 0; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+  /* ---------- keyframes ---------- */
+  @keyframes fade-in  { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes rise-in  { from { opacity: 0; transform: translateY(4vh) scale(1.03) }
+                        to   { opacity: 1; transform: translateY(0) scale(1) } }
+  @keyframes fade-up  { from { opacity: 0; transform: translateY(28px) }
+                        to   { opacity: 1; transform: translateY(0) } }
+  @keyframes line-in  { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+  @keyframes marquee-scroll { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+
+  .anim-fade-up { animation: fade-up .9s cubic-bezier(.22, 1, .36, 1) both; }
+
+  /* ---------- hero ---------- */
+  .hero { position: relative; height: 100dvh; width: 100%; overflow: hidden; }
+
+  .bg, .front { position: absolute; inset: 0; height: 100%; width: 100%; object-fit: cover; }
+
+  /* EDIT ME 4 — the backdrop, drawn in CSS so no image file is needed.
+     To use a real photo instead, put it next to this file and replace the
+     two gradients below with:   background: url(backdrop.jpg) center/cover; */
+  .bg {
+    background:
+      radial-gradient(75% 75% at 50% 35%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, .65) 100%),
+      linear-gradient(to bottom right, #33322d 0%, #171713 50%, #000000 100%);
+    animation: fade-in 1.2s ease-out both;
+  }
+
+  .front {
+    z-index: 20; pointer-events: none;
+    object-position: var(--headshot-position);
+    animation: rise-in 1.4s cubic-bezier(.22, 1, .36, 1) both; animation-delay: 300ms;
+  }
+
+  /* ---------- marquee ---------- */
+  .marquee-wrap {
+    position: absolute; left: 0; right: 0; top: 16vh;
+    z-index: 10; overflow: hidden; animation-delay: 500ms;
+  }
+  .marquee {
+    display: flex; width: max-content; white-space: nowrap;
+    font-size: 16vh; line-height: 1; color: var(--cream);
+    animation: marquee-scroll 30s linear infinite;
+  }
+  .marquee span { padding-right: 6vw; }
+
+  /* ---------- header ---------- */
+  .header {
+    position: absolute; left: 0; right: 0; top: 0; z-index: 30;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 1.5rem 1.5rem 0;
+  }
+  .brand { font-size: 1.125rem; line-height: 1.75rem; letter-spacing: .025em; color: var(--cream); animation-delay: 800ms; }
+  .cluster { display: none; }
+  .year { font-size: .875rem; line-height: 1.25rem; color: var(--cream); animation-delay: 900ms; }
+
+  .col { display: flex; flex-direction: column; gap: .125rem; font-size: .875rem; line-height: 1.25rem; }
+  .col > span { display: flex; }
+  .col a { color: var(--cream); transition: opacity .3s; }
+  .col a:hover { opacity: .6; }
+
+  .col-nav    > span:nth-child(1) { animation-delay: 1000ms }
+  .col-nav    > span:nth-child(2) { animation-delay: 1080ms }
+  .col-nav    > span:nth-child(3) { animation-delay: 1160ms }
+  .col-social > span:nth-child(1) { animation-delay: 1150ms }
+  .col-social > span:nth-child(2) { animation-delay: 1230ms }
+  .col-social > span:nth-child(3) { animation-delay: 1310ms }
+
+  /* ---------- hamburger ---------- */
+  .burger-wrap { position: absolute; right: 1.5rem; top: 1.5rem; z-index: 50; animation-delay: 900ms; }
+  .burger { display: flex; height: 2.5rem; width: 2.5rem; align-items: center; justify-content: center; transition: opacity .3s; }
+  body.menu-open .burger { opacity: 0; pointer-events: none; }
+
+  .bars { position: relative; display: block; height: 1rem; width: 1.5rem; }
+  .bars i { position: absolute; left: 0; width: 100%; height: 2px; background: var(--cream); }
+  .bars i:nth-child(1) { top: 0;    transition: transform .5s cubic-bezier(.76, 0, .24, 1); }
+  .bars i:nth-child(2) { top: 50%;  transform: translateY(-50%); transition: opacity .3s; }
+  .bars i:nth-child(3) { bottom: 0; transition: transform .5s cubic-bezier(.76, 0, .24, 1); }
+  body.menu-open .bars i:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  body.menu-open .bars i:nth-child(2) { opacity: 0; }
+  body.menu-open .bars i:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* ---------- rule + footer ---------- */
+  .rule {
+    position: absolute; left: 1.5rem; right: 1.5rem; bottom: 5.5rem; z-index: 10;
+    height: 2px; background: var(--cream); transform-origin: left;
+    animation: line-in 1.1s cubic-bezier(.76, 0, .24, 1) both; animation-delay: 1200ms;
+  }
+  .footer {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 1.5rem 1.25rem;
+    font-size: .75rem; line-height: 1.625; color: var(--cream);
+  }
+  .f-left  { animation-delay: 1400ms; }
+  .f-right { text-align: right; animation-delay: 1550ms; }
+
+  /* ---------- mobile drawer ---------- */
+  .backdrop {
+    position: fixed; inset: 0; z-index: 40;
+    background: rgba(0, 0, 0, .4);
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity .5s;
+  }
+  body.menu-open .backdrop { opacity: 1; pointer-events: auto; }
+
+  .drawer {
+    position: fixed; top: 0; bottom: 0; right: 0; z-index: 40;
+    width: 80%; max-width: 24rem; background: #141414; padding: 2.5rem 2rem;
+    transform: translateX(100%); transition: transform .6s cubic-bezier(.76, 0, .24, 1);
+  }
+  body.menu-open .drawer { transform: translateX(0); }
+
+  .close {
+    position: absolute; right: 1.5rem; top: 1.5rem; z-index: 50; display: flex;
+    color: var(--cream); transform: rotate(90deg); opacity: 0;
+    transition: transform .5s, opacity .5s;
+  }
+  body.menu-open .close { transform: rotate(0); opacity: 1; transition-delay: 300ms; }
+
+  .group { margin-top: 4rem; }
+  .label {
+    font-size: .75rem; line-height: 1rem; text-transform: uppercase; letter-spacing: .2em;
+    color: rgba(239, 238, 233, .5);
+    transform: translateY(1rem); opacity: 0; transition: transform .5s, opacity .5s;
+  }
+  body.menu-open .label { transform: none; opacity: 1; }
+  body.menu-open .label-index { transition-delay: 250ms; }
+  body.menu-open .label-find  { transition-delay: 500ms; }
+
+  .drawer-nav { display: flex; flex-direction: column; gap: .5rem; margin-top: 1.5rem; }
+  .drawer-nav a {
+    font-size: 2.25rem; line-height: 2.5rem; color: var(--cream);
+    transform: translateY(1.5rem); opacity: 0; transition: transform .5s, opacity .5s;
+  }
+  body.menu-open .drawer-nav a { transform: none; opacity: 1; }
+  body.menu-open .drawer-nav a:nth-child(1) { transition-delay: 300ms }
+  body.menu-open .drawer-nav a:nth-child(2) { transition-delay: 380ms }
+  body.menu-open .drawer-nav a:nth-child(3) { transition-delay: 460ms }
+
+  .drawer-social { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: 1rem; }
+  .drawer-social a {
+    font-size: .875rem; line-height: 1.25rem; color: var(--cream);
+    transform: translateY(1rem); opacity: 0; transition: transform .5s, opacity .5s;
+  }
+  body.menu-open .drawer-social a { transform: none; opacity: 1; }
+  body.menu-open .drawer-social a:nth-child(1) { transition-delay: 550ms }
+  body.menu-open .drawer-social a:nth-child(2) { transition-delay: 610ms }
+  body.menu-open .drawer-social a:nth-child(3) { transition-delay: 670ms }
+
+  /* ---------- sm: 640px and up ---------- */
+  @media (min-width: 640px) {
+    .header { padding: 2rem 2.5rem 0; }
+    .cluster { display: flex; align-items: flex-start; gap: 4rem; }
+    .marquee-wrap { top: 14vh; }
+    .marquee { font-size: 26vh; }
+    .rule { left: 2.5rem; right: 2.5rem; bottom: 7rem; }
+    .footer { z-index: 10; padding: 0 2.5rem 2rem; font-size: .875rem; }
+    .burger-wrap, .backdrop, .drawer { display: none; }
+  }
+
+  /* ---------- lg: 1024px and up ---------- */
+  @media (min-width: 1024px) {
+    .cluster { gap: 6rem; }
+  }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .bg, .front, .anim-fade-up, .rule, .marquee {
+      animation-duration: .01ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+    }
+    *, *::before, *::after {
+      transition-duration: .01ms !important;
+      transition-delay: 0ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="bg"></div>
+
+  <div class="marquee-wrap anim-fade-up">
+    <div class="marquee">
+      <span>Supun &mdash; Body Sculpting&nbsp;</span>
+      <span>Supun &mdash; Body Sculpting&nbsp;</span>
+    </div>
+  </div>
+
+  <!-- EDIT ME 1 — replace this whole tag's src with Supun's cutout photo.
+       See the instructions at the top of the file. -->
+  <img class="front" alt="Supun, personal trainer"
+       src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='800'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='.3' y2='1'%3E%3Cstop offset='0' stop-color='%23c9c5bb'/%3E%3Cstop offset='1' stop-color='%238e8b83'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg fill='url(%23s)'%3E%3Cellipse cx='640' cy='318' rx='126' ry='158'/%3E%3Cpath d='M640 462 C 486 462 408 566 384 800 L 896 800 C 872 566 794 462 640 462 Z'/%3E%3C/g%3E%3C/svg%3E">
+
+  <header class="header">
+    <a class="brand anim-fade-up" href="#">Supun</a>
+
+    <div class="cluster">
+      <span class="year anim-fade-up">2025</span>
+
+      <nav class="col col-nav">
+        <span class="anim-fade-up"><a href="#" data-link="programs">Programs</a></span>
+        <span class="anim-fade-up"><a href="#" data-link="results">Results</a></span>
+        <span class="anim-fade-up"><a href="#" data-link="contact">Contact</a></span>
+      </nav>
+
+      <nav class="col col-social">
+        <span class="anim-fade-up"><a href="#" data-link="instagram">Instagram</a></span>
+        <span class="anim-fade-up"><a href="#" data-link="tiktok">TikTok</a></span>
+        <span class="anim-fade-up"><a href="#" data-link="youtube">YouTube</a></span>
+      </nav>
+    </div>
+  </header>
+
+  <div class="burger-wrap anim-fade-up">
+    <button class="burger" type="button" id="burger" aria-label="Open menu" aria-expanded="false">
+      <span class="bars"><i></i><i></i><i></i></span>
+    </button>
+  </div>
+
+  <div class="rule"></div>
+
+  <footer class="footer">
+    <div class="f-left anim-fade-up">
+      <p>Personal Trainer</p>
+      <p>Body Sculpting Coach</p>
+      <p>Strength &amp; Conditioning</p>
+    </div>
+    <div class="f-right anim-fade-up">
+      <p>Train with</p>
+      <p>Supun</p>
+    </div>
+  </footer>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <aside class="drawer" id="drawer">
+    <button class="close" type="button" id="close" aria-label="Close menu">
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="1.5"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+      </svg>
+    </button>
+
+    <div class="group">
+      <p class="label label-index">Site Index</p>
+      <nav class="drawer-nav">
+        <a href="#" data-link="programs">Programs</a>
+        <a href="#" data-link="results">Results</a>
+        <a href="#" data-link="contact">Contact</a>
+      </nav>
+    </div>
+
+    <div class="group">
+      <p class="label label-find">Find Me</p>
+      <nav class="drawer-social">
+        <a href="#" data-link="instagram">Instagram</a>
+        <a href="#" data-link="tiktok">TikTok</a>
+        <a href="#" data-link="youtube">YouTube</a>
+      </nav>
+    </div>
+  </aside>
+</section>
+
+<script>
+  (function () {
+
+    /* ===================================================================
+       EDIT ME 3 — the real links.
+
+       Fill in what exists and leave the rest as empty strings. Anything
+       left blank simply stays inert, so this is safe to send out early.
+
+       whatsapp: country code + number, digits only, no + or spaces.
+                 Sri Lanka example: '94771234567'
+       =================================================================== */
+    var LINKS = {
+      instagram: '',
+      tiktok:    '',
+      youtube:   '',
+      whatsapp:  '',
+      email:     ''
+    };
+
+    // What each nav link asks about, so the enquiry arrives with context.
+    var MESSAGES = {
+      programs: "Hi Supun, I'd like to hear about your training programs.",
+      results:  "Hi Supun, I'd like to see some client results.",
+      contact:  "Hi Supun, I'd like to book a session."
+    };
+
+    // ---- wire the config above onto the page ----------------------------
+    function enquiry(text) {
+      if (LINKS.whatsapp) {
+        return 'https://wa.me/' + LINKS.whatsapp + '?text=' + encodeURIComponent(text);
+      }
+      if (LINKS.email) {
+        return 'mailto:' + LINKS.email +
+               '?subject=' + encodeURIComponent('Training enquiry') +
+               '&body=' + encodeURIComponent(text);
+      }
+      return '';
+    }
+
+    var targets = {
+      instagram: LINKS.instagram,
+      tiktok:    LINKS.tiktok,
+      youtube:   LINKS.youtube,
+      programs:  enquiry(MESSAGES.programs),
+      results:   enquiry(MESSAGES.results),
+      contact:   enquiry(MESSAGES.contact)
+    };
+
+    Object.keys(targets).forEach(function (key) {
+      var href = targets[key];
+      if (!href) return;
+      document.querySelectorAll('[data-link="' + key + '"]').forEach(function (a) {
+        a.href = href;
+        if (href.indexOf('http') === 0) {
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+        }
+      });
+    });
+
+    // ---- mobile drawer ---------------------------------------------------
+    var body = document.body;
+    var burger = document.getElementById('burger');
+
+    function setOpen(open) {
+      body.classList.toggle('menu-open', open);
+      body.style.overflow = open ? 'hidden' : '';
+      burger.setAttribute('aria-expanded', String(open));
+      burger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    }
+
+    burger.addEventListener('click', function () {
+      setOpen(!body.classList.contains('menu-open'));
+    });
+    document.getElementById('close').addEventListener('click', function () { setOpen(false); });
+    document.getElementById('backdrop').addEventListener('click', function () { setOpen(false); });
+    document.querySelectorAll('#drawer a').forEach(function (a) {
+      a.addEventListener('click', function () { setOpen(false); });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') setOpen(false);
+    });
+  })();
+</script>
+
+</body>
+</html>
