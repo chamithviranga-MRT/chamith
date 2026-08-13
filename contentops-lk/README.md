@@ -31,15 +31,14 @@ data URI.
 
 ## Before you publish — things to replace
 
-1. **WhatsApp number.** Near the bottom of `index.html`, in the `CONFIGURE ME`
-   block:
+1. ~~**WhatsApp number.**~~ Set to **+94 74 112 2901**. If it ever changes, edit
+   the `CONFIGURE ME` block near the bottom of `index.html` — every WhatsApp
+   button and the contact form read from these two constants:
 
    ```js
-   var WA_NUMBER  = "94770000000";   // international format, digits only
-   var WA_DISPLAY = "+94 77 000 0000";
+   var WA_NUMBER  = "94741122901";      // international format, digits only
+   var WA_DISPLAY = "+94 74 112 2901";  // how it's shown in the contact list
    ```
-
-   Every WhatsApp button and the contact form read from these two constants.
 
 2. **Testimonials.** The three quotes in the `#results` section are illustrative
    placeholders and the page says so in a visible warning box. Swap in real,
