@@ -1,0 +1,24 @@
+name = "brand-studio"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+
+# Serves index.html from this directory alongside the /api/* routes, so the
+# frontend and backend share an origin and API_BASE in index.html stays "".
+[assets]
+directory = "."
+binding = "ASSETS"
+
+# Optional: per-access-code daily rate limiting. Create with
+#   npx wrangler kv namespace create RATE
+# then paste the returned id below and uncomment.
+# [[kv_namespaces]]
+# binding = "RATE"
+# id = "paste-the-id-here"
+
+[vars]
+# Lock the API to your own frontend once you know its origin.
+# ALLOWED_ORIGIN = "https://studio.contentops.lk"
+
+# Secrets are NOT set here — they would end up in git. Set them with:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put CLIENT_CODES
