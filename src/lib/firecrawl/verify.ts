@@ -74,38 +74,68 @@ export function aprAppears(text: string, n: number): boolean {
   return false;
 }
 
+/** Where a month/year figure for `months` appears in the text (as months, years, weeks, a "12+", or the low end of a range). */
+function monthMatches(text: string, months: number): Array<{ index: number; length: number }> {
+  const out: Array<{ index: number; length: number }> = [];
+  const add = (src: string) => {
+    for (const m of text.matchAll(new RegExp(src, "gi"))) out.push({ index: m.index ?? 0, length: m[0].length });
+  };
+  const RANGE = "\\s?(?:-|to)\\s?\\d+(?:\\.\\d+)?"; // the lower end of "6-12 months" / "10-30 years"
+  for (const f of [`${months} month`, `${months}-month`, `${months} mo\\b`, `${months} months`, `${months}\\+ ?months?`, `${months} (?:plus|or more) months?`, `${months}${RANGE} ?(?:months?|mos?\\b)`]) add(`(?<![\\d.])${f}`);
+  if (months % 12 === 0) {
+    const y = months / 12;
+    add(`(?<![\\d.])${y}(?:\\+|[- ]| (?:plus|or more) )(?:years?|yrs?)\\b`);
+    add(`(?<![\\d.])${y}${RANGE} ?(?:years?|yrs?)\\b`);
+    const word = Object.entries(NUM_WORDS).find(([, v]) => v === y)?.[0];
+    if (word) add(`\\b${word}[- ](?:years?|yrs?)\\b`);
+  }
+  if (months % 1 !== 0 || months < 12) add(`(?<![\\d.])${(months / 12).toFixed(1)}[- ]years?`);
+  if (months <= 3) add(`(?<![\\d.])${Math.round(months * 4.345)}[- ]weeks?`);
+  return out;
+}
+
 /** Months may be written as months, or years (1 year = 12 months), or weeks for very short terms. */
 export function monthsAppear(text: string, months: number): boolean {
   if (months === 0) return /\bno minimum\b|\bnew business|\bstartups?\b|\bnot required\b|\b0 months\b/.test(text);
-  const forms = [`${months} month`, `${months}-month`, `${months} mo\\b`, `${months} months`];
-  const re = (s: string) => new RegExp(`(?<![\\d.])${s}`, "i");
-  if (forms.some((f) => re(f).test(text))) return true;
-  if (months % 12 === 0) {
-    const y = months / 12;
-    if (new RegExp(`(?<![\\d.])${y}[- ](?:years?|yrs?)\\b`, "i").test(text)) return true;
-    const word = Object.entries(NUM_WORDS).find(([, v]) => v === y)?.[0];
-    if (word && new RegExp(`\\b${word}[- ](?:years?|yrs?)\\b`, "i").test(text)) return true;
-  }
-  if (months % 1 !== 0 || months < 12) {
-    const years = months / 12;
-    if (new RegExp(`(?<![\\d.])${years.toFixed(1)}[- ]years?`, "i").test(text)) return true;
-  }
-  if (months <= 3) {
-    const w = Math.round(months * 4.345);
-    if (new RegExp(`(?<![\\d.])${w}[- ]weeks?`, "i").test(text)) return true;
+  return monthMatches(text, months).length > 0;
+}
+
+const BUSINESS_AGE = /in business|business history|time in business|years in business|months in business|operating|operation|established|business age|been (?:open|running)/;
+const LOAN_TERM = /\bterms?\b|repay|pay(?:ing)? back|maturit|duration|loan length|borrow(?:ing)? (?:for|over)|financing for/;
+
+/** The figure must sit next to wording that fits its ROLE: "in business 12+ months" is a business age, not a 12-month loan term. */
+function monthsInRole(text: string, months: number, role: "term" | "businessAge"): boolean {
+  if (months === 0) return monthsAppear(text, months);
+  return monthMatches(text, months).some((m) => {
+    const ctx = text.slice(Math.max(0, m.index - 70), m.index + m.length + 70);
+    const age = BUSINESS_AGE.test(ctx);
+    const term = LOAN_TERM.test(ctx);
+    return role === "term" ? term || !age : age || !term;
+  });
+}
+export const termMonthsAppear = (t: string, n: number) => monthsInRole(t, n, "term");
+export const businessAgeAppears = (t: string, n: number) => monthsInRole(t, n, "businessAge");
+
+/** "Time to fund 1-2 months after approval": a month count only counts as funding time next to funding wording ("3 months of bank statements" does not). */
+function monthsFundingAppear(text: string, m: number): boolean {
+  const re = new RegExp(`(?<![\\d.])(?:\\d+\\s?(?:-|to)\\s?)?${m}(?:\\s?(?:-|to)\\s?\\d+)?\\s?months?`, "gi");
+  for (const x of text.matchAll(re)) {
+    const i = x.index ?? 0;
+    if (/\b(?:fund|funded|funding|approv|disburs|closing|close in|receive)/.test(text.slice(Math.max(0, i - 60), i + x[0].length + 60))) return true;
   }
   return false;
 }
 
 export function daysAppear(text: string, days: number): boolean {
   if (days === 0) return /same[- ]day|within hours|instant|immediately/.test(text);
-  if (days === 1) return /24[- ]hours?|next[- ](?:business[- ])?day|1[- ](?:business[- ])?day|one (?:business )?day|overnight/.test(text);
+  if (days === 1) return /24[- ]hours?|next[- ](?:business[- ])?day|1[- ](?:business[- ])?day|one (?:business )?day|overnight|(?<![\d.])1\s?(?:-|to)\s?\d+\s?(?:business |calendar |working )?days?/.test(text);
   const forms = [`${days}`];
   const word = Object.entries(NUM_WORDS).find(([, v]) => v === days)?.[0];
   if (word) forms.push(word);
   if (days % 7 === 0) forms.push(`${days / 7}[- ]weeks?`);
   const hours = days * 24;
   forms.push(`${hours}[- ]hours?`);
+  if (days % 30 === 0 && monthsFundingAppear(text, days / 30)) return true;
   return forms.some((f) => new RegExp(`(?<![\\d.])${f}\\s*(?:-|to|or)?\\s*(?:\\d+\\s*)?(?:business |calendar |working )?(?:days?|weeks?|hours?)`, "i").test(text) || new RegExp(`(?<![\\d.])${f}(?![\\d])\\s*(?:-|to)\\s*\\d+\\s*(?:business )?days?`, "i").test(text) || new RegExp(`\\b\\d+\\s*(?:-|to)\\s*${f}\\s*(?:business )?days?`, "i").test(text));
 }
 
@@ -131,9 +161,9 @@ const NUM_RULES: Array<[keyof ExtractedProduct, (t: string, v: number) => boolea
   ["minAnnualRevenue", moneyAppears],
   ["minMonthlyRevenue", moneyAppears],
   ["monthlyFeeUsd", moneyAppears],
-  ["termMinMonths", monthsAppear],
-  ["termMaxMonths", monthsAppear],
-  ["minTimeInBusinessMonths", monthsAppear],
+  ["termMinMonths", termMonthsAppear],
+  ["termMaxMonths", termMonthsAppear],
+  ["minTimeInBusinessMonths", businessAgeAppears],
   ["aprMin", aprAppears],
   ["aprMax", aprAppears],
   ["originationFeePctMin", percentAppears],
@@ -150,7 +180,7 @@ const ENUM_RULES: Array<[keyof ExtractedProduct, Check]> = [
   ["uccLien", (t, p) => (p.uccLien ? has(t, /\bucc\b|blanket lien|lien/) : has(t, /\bucc\b|blanket lien|lien|no lien/))],
   ["collateralRequired", (t, p) => (p.collateralRequired === "none" ? has(t, /unsecured|no collateral|without collateral|collateral[- ]free|not require(?:d)? collateral/) : has(t, /collateral|secured|secure the loan|pledge/))],
   ["creditPull", (t, p) => (p.creditPull === "soft" ? has(t, /soft (?:credit )?(?:pull|check|inquiry)|soft pull/) : has(t, /hard (?:credit )?(?:pull|check|inquiry)|hard pull|credit inquiry/))],
-  ["prepaymentPenalty", (t, p) => (p.prepaymentPenalty === "none" ? has(t, /no prepayment|without (?:a )?prepayment|prepay(?:ment)? (?:anytime )?without|no early (?:payoff|repayment)|no penalty/) : has(t, /prepayment|early (?:payoff|repayment|termination)/))],
+  ["prepaymentPenalty", (t, p) => (p.prepaymentPenalty === "none" ? has(t, /no prepayment|without (?:a )?prepayment|prepay(?:ment)? (?:anytime )?without|no early (?:payoff|repayment)|no (?:[a-z]+ ){0,3}(?:or )?(?:early (?:payoff|repayment)|prepayment) (?:fees?|penalt)|no penalty/) : has(t, /prepayment|early (?:payoff|repayment|termination)/))],
   ["repaymentFrequency", (t, p) => has(t, new RegExp(`${p.repaymentFrequency}`))],
   ["residencyRule", (t) => has(t, /citizen|permanent resident|resident|green card|u\.?s\.? (?:address|business|based)/)],
   ["businessUseAllowed", (t, p) => (p.businessUseAllowed ? has(t, /business/) : has(t, /business|commercial/))],

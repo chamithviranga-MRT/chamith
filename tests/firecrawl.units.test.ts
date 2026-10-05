@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { aprAppears, cleanCached, isUsableRecord, sanitizeRecord, verifyProduct, toProductRecords, cleanLabel, looksLikeInjection, moneyAppears, percentAppears, monthsAppear, daysAppear, normText } from "@/lib/firecrawl/verify";
+import { aprAppears, businessAgeAppears, termMonthsAppear, cleanCached, isUsableRecord, sanitizeRecord, verifyProduct, toProductRecords, cleanLabel, looksLikeInjection, moneyAppears, percentAppears, monthsAppear, daysAppear, normText } from "@/lib/firecrawl/verify";
 import { ExtractedProductSchema, type ExtractedProduct } from "@/lib/firecrawl/productSchema";
 import { isAllowed, parseRobots } from "@/lib/firecrawl/robots";
 import { isDeniedUrl, looksLikeLoginWall, rankProductUrls, registrableDomain, sameSite } from "@/lib/firecrawl/urls";
@@ -97,6 +97,46 @@ describe("an APR must be an annual rate, not a periodic fee", () => {
     expect(product.aprMax).toBeNull();
     expect(unverified).toEqual(expect.arrayContaining(["aprMin", "aprMax"]));
     expect(product.minAmount).toBe(10000);
+  });
+});
+
+describe("formats the verifier must read (taken from real lender pages) and roles it must keep apart", () => {
+  const n = normText;
+  it("reads the low end of a range, a '12+' and a plus-suffix", () => {
+    expect(monthsAppear(n("Loan Terms 10-30 years What is an SBA loan?"), 120)).toBe(true);
+    expect(monthsAppear(n("Term Length 5-25 years Max Loan Amount $5 million"), 60)).toBe(true);
+    expect(monthsAppear(n("terms of 6-12 months"), 6)).toBe(true);
+    expect(monthsAppear(n("business must be a corporation or LLC in business 12+ months, with no bankruptcies"), 12)).toBe(true);
+    expect(monthsAppear(n("a 24-month repayment term"), 12)).toBe(false);
+  });
+  it("reads '1-2 business days' and a funding time given in months, but not months of paperwork", () => {
+    expect(daysAppear(n("receive the funds in as little as 1-2 business days"), 1)).toBe(true);
+    expect(daysAppear(n("Time to Fund 1-2 months after approval"), 30)).toBe(true);
+    expect(daysAppear(n("Time to Fund 1-2 months after approval"), 60)).toBe(true);
+    expect(daysAppear(n("you will be funded within 3 months"), 90)).toBe(true);
+    expect(daysAppear(n("send bank statements from the last 3 months"), 90)).toBe(false);
+  });
+  it("a business age is not a loan term, and a loan term is not a business age", () => {
+    const bluevine = n("Business must be a corporation or LLC in business 12+ months, with no bankruptcies on file.");
+    expect(businessAgeAppears(bluevine, 12)).toBe(true);
+    expect(termMonthsAppear(bluevine, 12)).toBe(false);
+    expect(termMonthsAppear(n("Choose repayment terms from 6 months up to 5 years."), 6)).toBe(true);
+    expect(termMonthsAppear(n("Choose repayment terms from 6 months up to 5 years."), 60)).toBe(true);
+    expect(businessAgeAppears(n("Minimum 2 years in business under existing ownership."), 24)).toBe(true);
+    expect(businessAgeAppears(n("Choose a 24-month repayment term."), 24)).toBe(false);
+    // ambiguous wording keeps working: no business-age or term cue at all
+    expect(termMonthsAppear(n("Up to 36 months."), 36)).toBe(true);
+  });
+  it("reads 'no origination or early payoff fees' as no prepayment penalty", () => {
+    const page = n("No fees: no origination or early payoff fees. Borrow $5,000.");
+    expect(verifyProduct({ ...blank(), prepaymentPenalty: "none", minAmount: 5000 }, page).product.prepaymentPenalty).toBe("none");
+    expect(verifyProduct({ ...blank(), prepaymentPenalty: "none", minAmount: 5000 }, n("Borrow $5,000.")).product.prepaymentPenalty).toBeNull();
+  });
+  it("still drops values a page never states (the extractor's stock defaults)", () => {
+    const page = n("Apply today. Rates vary. Borrow what you need.");
+    const { product, unverified } = verifyProduct({ ...blank(), termMinMonths: 12, termMaxMonths: 60, bankruptcyLookbackYears: 99, taxLiensDisqualify: false, recentDefaultsDisqualify: false, fundingDaysMax: 3 }, page);
+    expect(unverified).toEqual(expect.arrayContaining(["termMinMonths", "termMaxMonths", "bankruptcyLookbackYears", "taxLiensDisqualify", "recentDefaultsDisqualify", "fundingDaysMax"]));
+    expect(product.termMinMonths).toBeNull();
   });
 });
 
