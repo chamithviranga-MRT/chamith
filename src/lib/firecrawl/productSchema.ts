@@ -51,6 +51,10 @@ export const ExtractedProductSchema = z.object({
   residencyRule: z.enum(RESIDENCY_RULES).nullable(),
   creditPull: z.enum(["soft", "hard"]).nullable(),
   businessUseAllowed: z.boolean().nullable(),
+  /** Years since a bankruptcy a borrower must have (e.g. 7); 99 = any bankruptcy disqualifies. */
+  bankruptcyLookbackYears: z.number().nullable(),
+  taxLiensDisqualify: z.boolean().nullable(),
+  recentDefaultsDisqualify: z.boolean().nullable(),
   eligiblePurposes: z.array(z.enum(["working_capital", "equipment", "expansion", "debt_consolidation", "real_estate", "inventory"])),
   /** Short verbatim quote from the page supporting the headline amount/rate/eligibility. */
   evidenceQuote: z.string().nullable(),
@@ -84,6 +88,7 @@ Rules:
 - Use ONLY information explicitly stated on this page. If a value is not stated, return null (or an empty array). Never infer, estimate, average, or use outside knowledge.
 - Money in USD numbers. Terms and time in MONTHS (2 years = 24). Rates in percent (8.5 means 8.5%). Factor rates as numbers like 1.2. Funding speed in calendar days (same day = 0, 24 hours = 1).
 - If a page gives a range, fill both min and max. If it says "starting at" or "up to", fill only the stated bound.
+- bankruptcyLookbackYears: the number of years since a bankruptcy the page requires (e.g. "no bankruptcies in the last 7 years" = 7); use 99 if any bankruptcy disqualifies. taxLiensDisqualify / recentDefaultsDisqualify: true only if the page says tax liens / recent defaults, charge-offs or collections disqualify applicants.
 - excludedStates are US state codes the page says are NOT eligible/served; excludedCountries are ISO country codes.
 - evidenceQuote: a short VERBATIM quote (max 200 characters) from the page that supports the headline amount, rate or eligibility.
 - If the page is not about a financing product (blog, login, careers, legal, rates for deposit accounts), return {"products": []}.

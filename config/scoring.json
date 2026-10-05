@@ -1,0 +1,158 @@
+{
+  "_comment": "Editable scoring config. 'weights' must sum to 100. No weight, anchor or prior here may depend on commissions or referral fees: ranking is independent of how LendMatch could be paid.",
+  "weights": {
+    "eligibilityFit": 30,
+    "totalCost": 25,
+    "termPaymentFit": 15,
+    "speed": 10,
+    "collateralBurden": 10,
+    "reliability": 10
+  },
+  "cost": {
+    "_comment": "Effective APR (%) -> cost score. Piecewise linear between anchors.",
+    "aprAnchors": [
+      [
+        6,
+        100
+      ],
+      [
+        12,
+        85
+      ],
+      [
+        20,
+        65
+      ],
+      [
+        35,
+        40
+      ],
+      [
+        60,
+        15
+      ],
+      [
+        100,
+        0
+      ]
+    ],
+    "unknownCostScore": 40,
+    "lowerBoundOnlyMultiplier": 0.85
+  },
+  "defaults": {
+    "_comment": "Used ONLY to compute estimates when a lender publishes no term. Always shown to the user as 'assumed'.",
+    "termMonthsByType": {
+      "term_loan": 36,
+      "line_of_credit": 12,
+      "sba_7a": 120,
+      "sba_504": 240,
+      "microloan": 72,
+      "equipment": 48,
+      "invoice_factoring": 3,
+      "mca": 9,
+      "business_card": 12,
+      "personal_loan": 60,
+      "commercial_real_estate": 240,
+      "other": 24
+    }
+  },
+  "eligibility": {
+    "passBase": 60,
+    "borderlineScore": 40,
+    "unknownScore": 60,
+    "ficoMarginFullAt": 60,
+    "tibMarginMultiple": 2,
+    "revenueMarginMultiple": 2
+  },
+  "termPayment": {
+    "paymentToRevenueAnchors": [
+      [
+        5,
+        100
+      ],
+      [
+        10,
+        85
+      ],
+      [
+        20,
+        55
+      ],
+      [
+        35,
+        20
+      ],
+      [
+        50,
+        0
+      ]
+    ],
+    "unknownRevenueScore": 50,
+    "zeroRevenueScore": 25,
+    "noTermPreferenceScore": 80,
+    "unknownTermScore": 50,
+    "frequencyMatch": 100,
+    "frequencyNoPreference": 80,
+    "frequencyMismatch": 40,
+    "subWeights": {
+      "term": 0.5,
+      "affordability": 0.3,
+      "frequency": 0.2
+    }
+  },
+  "speed": {
+    "unknownScore": 40,
+    "slowestMultiple": 3,
+    "absoluteAnchorsDays": [
+      [
+        2,
+        100
+      ],
+      [
+        7,
+        85
+      ],
+      [
+        14,
+        70
+      ],
+      [
+        30,
+        55
+      ],
+      [
+        60,
+        35
+      ],
+      [
+        120,
+        20
+      ]
+    ]
+  },
+  "burden": {
+    "personalGuarantee": 15,
+    "personalGuaranteeSometimes": 8,
+    "uccLien": 15,
+    "collateralAlways": 20,
+    "collateralSometimes": 10,
+    "unknownEach": 5,
+    "willingFactor": 0.6
+  },
+  "reliability": {
+    "lenderWeight": 0.5,
+    "dataWeight": 0.5,
+    "completenessWeight": 0.6,
+    "freshnessWeight": 0.4,
+    "freshnessFullDays": 1,
+    "freshnessAtTtlScore": 40,
+    "unverifiedFieldPenalty": 5,
+    "unverifiedMaxPenalty": 30
+  },
+  "rank": {
+    "topN": 10,
+    "nearMissMax": 6,
+    "nearMissMaxFailedGates": 2,
+    "maxPerLender": 2
+  }
+}

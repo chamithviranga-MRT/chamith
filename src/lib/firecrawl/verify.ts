@@ -163,6 +163,23 @@ export function verifyProduct(raw: ExtractedProduct, pageMarkdown: string): { pr
     }
   }
 
+  // credit-history disqualifiers: the page must actually talk about them
+  if (product.bankruptcyLookbackYears !== null) {
+    const y = product.bankruptcyLookbackYears;
+    if (!(has(text, /bankruptc/) && (y === 99 || monthsAppear(text, y * 12)))) {
+      product.bankruptcyLookbackYears = null;
+      drop("bankruptcyLookbackYears");
+    }
+  }
+  if (product.taxLiensDisqualify !== null && !has(text, /tax lien|\blien/)) {
+    product.taxLiensDisqualify = null;
+    drop("taxLiensDisqualify");
+  }
+  if (product.recentDefaultsDisqualify !== null && !has(text, /default|delinquen|charge-?off|collections?/)) {
+    product.recentDefaultsDisqualify = null;
+    drop("recentDefaultsDisqualify");
+  }
+
   // sanity: ranges must be ordered, otherwise the pair is untrustworthy
   const pairs: Array<[keyof ExtractedProduct, keyof ExtractedProduct]> = [
     ["minAmount", "maxAmount"], ["termMinMonths", "termMaxMonths"], ["aprMin", "aprMax"], ["factorMin", "factorMax"],
