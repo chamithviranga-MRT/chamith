@@ -174,6 +174,11 @@ export async function runPipeline(o: PipelineOptions): Promise<PipelineResult> {
     if (fresh) lenders.push(l);
   }
   if (o.onlySlugs) lenders = lenders.filter((l) => o.onlySlugs!.includes(l.slug));
+  // The repo returns lenders in arbitrary order. Apply the cap to a deterministic order: the registry as listed,
+  // then lenders discovered in this run, then older discoveries that still have fresh data.
+  const registryOrder = new Map(o.registry.map((r, i) => [r.slug, i]));
+  const rankOf = (l: LenderRow) => registryOrder.get(l.slug) ?? (discoveredThisRun.has(l.slug) ? 10_000 : 20_000);
+  lenders.sort((a, b) => rankOf(a) - rankOf(b) || a.name.localeCompare(b.name));
   lenders = lenders.slice(0, o.maxLenders ?? MAX_LENDERS_PER_RUN);
   lendersTotal = lenders.length;
   emit({ type: "stage", stage: "scanning", message: `Scanning ${lendersTotal} lenders…` });

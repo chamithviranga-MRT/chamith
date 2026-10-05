@@ -67,6 +67,14 @@ describe("term selection", () => {
     expect(t).toMatchObject({ months: 48, assumed: true });
     expect(t.note).toMatch(/assumed/);
   });
+  it("never applies the borrower's preferred term when the lender publishes no term at all", () => {
+    const t = chooseTerm({ termMinMonths: null, termMaxMonths: null, productType: "equipment" }, 120);
+    expect(t).toMatchObject({ months: 48, assumed: true });
+    expect(t.note).toMatch(/could not be checked/);
+  });
+  it("still honours the preference when only one bound is published", () => {
+    expect(chooseTerm({ termMinMonths: 12, termMaxMonths: null, productType: "term_loan" }, 36)).toMatchObject({ months: 36, assumed: false });
+  });
   it("respects a user cap on term", () => {
     expect(chooseTerm(base, null, { max: 24 }).months).toBe(24);
     expect(chooseTerm(base, 48, { max: 24 }).months).toBe(24);

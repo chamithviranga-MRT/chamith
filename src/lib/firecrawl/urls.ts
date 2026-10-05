@@ -27,7 +27,7 @@ export function sameSite(url: string, domain: string): boolean {
 // Never fetch anything that sits behind a login or is an account/transaction flow.
 const DENY_AUTH = /(^|[/._-])(log-?in|log-?on|sign-?in|sign-?on|sso|oauth2?|auth(?:enticate)?|session|my-?account|myaccount|online-?banking|portal|dashboard|cart|checkout|password|forgot|reset|logout|signup|sign-up|register)([/._-]|$)/i;
 // Content that cannot describe a financing product.
-const DENY_CONTENT = /(^|[/._-])(blog|news|newsroom|press|careers?|jobs|about-us|investors?|investor-relations|privacy|terms|legal|cookies?|sitemap|security-center|fraud|contact|locations?|branch(?:es)?|atm|calculators?-?tools?|podcast|events?|webinars?|reviews?|testimonials?|espanol|es)([/._-]|$)/i;
+const DENY_CONTENT = /(^|[/._-])(blog|news|newsroom|press|careers?|jobs|about-us|investors?|investor-relations|privacy|terms|legal|cookies?|sitemap|security-center|fraud|contact|locations?|branch(?:es)?|atm|calculators?-?tools?|podcast|events?|webinars?|reviews?|testimonials?|espanol|es|resources?|learn|learning|insights?|guides?|articles?|education|how-to|what-is|compare|comparison|glossary|vs)([/._-]|$)/i;
 const DENY_FILE = /\.(?:pdf|jpe?g|png|gif|svg|webp|zip|xlsx?|docx?|mp4|mp3|css|js|xml|json)$/i;
 
 export function isDeniedUrl(url: string): boolean {

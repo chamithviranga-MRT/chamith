@@ -149,7 +149,7 @@ tests/                       245 tests
 ## Known gaps
 
 **Unverified until you run with keys**
-1. Live Firecrawl and Claude behaviour (see Status). First live run will likely need tuning: the grounding verifier is deliberately strict and may reject real values written in unusual formats (tables, "from 5K–500K", ranges split across lines), which shows up as lenders marked *data unavailable*.
+1. Live Firecrawl is now partly exercised; live Claude (extraction, reasoning, follow-ups) is still not. A first live pilot (one persona, `LENDMATCH_MAX_LENDERS=6`) worked end to end and cost **~200 Firecrawl credits for 6 lenders**, so a full 25-lender sweep plus discovery needs roughly 800+ credits (the free tier's 1,000 is one run). It also showed: (a) the grounding verifier is strict and nulls real values it cannot find verbatim in the page (several Bluevine fields were dropped); how often that is over-rejection versus a genuinely absent value has **not** been measured; (b) some lenders' crawled pages were articles rather than product pages (PNC returned no usable data), which the URL denylist now excludes (`resources`, `learn`, `insights`, `guides`, `compare`…); (c) lenders that do not publish a rate or limit (OnDeck, credit cards) are ranked on what they do publish and flagged, never filled in.
 2. Seed-registry domains may be stale or wrong; discovery will not fix a wrong seed domain.
 3. Extraction schema size/complexity for Firecrawl's JSON mode, and `output_config.effort`, are used per the SDK types but untested against the live API.
 

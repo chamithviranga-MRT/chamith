@@ -251,6 +251,7 @@ export function toProductRecords(
   for (const raw of products) {
     const name = cleanLabel(raw.productName);
     if (!name || !raw.productType) continue;
+    if (/^[a-z0-9]+(?:_[a-z0-9]+)+$/i.test(name)) continue; // "business_credit_card": an identifier, not a product name
     if (looksLikeInjection(`${raw.productName ?? ""} ${raw.evidenceQuote ?? ""}`)) continue;
     const { product, unverified } = verifyProduct({ ...raw, productName: name }, pageMarkdown);
     // A product with no verified quantitative or eligibility fact is not worth ranking.

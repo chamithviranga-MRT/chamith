@@ -13,6 +13,17 @@ const run = (p: ReturnType<typeof profile>, products: ReturnType<typeof product>
 describe("hard gates", () => {
   const eg = (pOver = {}, prod = {}) => evaluateGates(profile(pOver), product(prod).record, product().lender);
 
+  it("a card with no published credit limit is borderline, not unknown or pass", () => {
+    const g = gate(eg({ amountNeeded: 150000 }, { productType: "business_card", minAmount: null, maxAmount: null }), "amount");
+    expect(g.status).toBe("borderline");
+    expect(g.detail).toMatch(/not published/);
+    expect(g.fix).toMatch(/issuer/);
+    // a card that does publish a ceiling is still judged against it
+    expect(gate(eg({ amountNeeded: 150000 }, { productType: "business_card", minAmount: null, maxAmount: 50000 }), "amount").status).toBe("fail");
+    // other products with no published range stay 'unknown'
+    expect(gate(eg({ amountNeeded: 150000 }, { productType: "term_loan", minAmount: null, maxAmount: null }), "amount").status).toBe("unknown");
+  });
+
   it("amount outside range fails with a concrete fix", () => {
     expect(gate(eg({ amountNeeded: 5000 }), "amount")).toMatchObject({ status: "fail", fix: expect.stringMatching(/at least \$10,000/) });
     expect(gate(eg({ amountNeeded: 300000 }), "amount")).toMatchObject({ status: "fail", fix: expect.stringMatching(/\$250,000 or less/) });

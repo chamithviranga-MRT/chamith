@@ -16,7 +16,7 @@ import { PrismaRepo } from "../src/lib/firecrawl/repo";
 import { loadRegistry } from "../src/lib/firecrawl/registry";
 import { PERSONAS } from "../src/lib/eval/personas";
 import { FIXTURE_NOTICE, FIXTURE_PRODUCT_COUNT, fixtureProducts } from "../src/lib/eval/fixtures";
-import { evaluatePersona, type PersonaOutcome } from "../src/lib/eval/run";
+import { evaluatePersona, shortfallText, type LoadedProducts, type PersonaOutcome } from "../src/lib/eval/run";
 import { summarizeFlags } from "../src/lib/eval/audit";
 import { profileLines } from "../src/lib/export/text";
 import { fmtDate } from "../src/lib/report/format";
@@ -59,7 +59,7 @@ async function main() {
   }
 
   let sharedProducts: StoredProduct[] = [];
-  let loader: ((p: import("../src/lib/profile/schema").Profile) => Promise<StoredProduct[]>) | undefined;
+  let loader: ((p: import("../src/lib/profile/schema").Profile) => Promise<LoadedProducts>) | undefined;
   if (mode === "fixtures") {
     sharedProducts = fixtureProducts(new Date());
   } else {
@@ -70,7 +70,7 @@ async function main() {
     loader = async (profile) => {
       const res = await runPipeline({ profile, web, repo, registry: loadRegistry(), onEvent: (e) => e.type === "stage" && console.error(`  [research] ${e.message}`) });
       if (res.fatalError) fail(res.fatalError);
-      return res.products;
+      return { products: res.products, outcomes: res.outcomes, stats: res.stats };
     };
   }
 
@@ -90,7 +90,12 @@ async function main() {
     log(`**Extracted profile** (${o.mode === "claude" ? "Claude" : "offline"}): ${profileLines(o.profile).map(([k, v]) => `${k} = ${v}`).join(" · ")}`);
     log(`Extraction vs expected: ${o.extractionMismatches.length ? "MISMATCH — " + o.extractionMismatches.join("; ") : "all expected fields recovered"}${o.missingRequired.length ? ` · still missing: ${o.missingRequired.join(", ")}` : ""}`);
     log("");
-    log(`**Result:** ${o.products} products considered · ${rank.passed} passed every hard filter · showing ${report.items.length}${report.items.length < 10 ? " (fewer than 10: " + (report.notes.find((n) => n.startsWith("Only")) ?? "").replace(/^Only /, "only ") + ")" : ""}`);
+    log(`**Result:** ${o.products} products considered · ${rank.passed} passed every hard filter · showing ${report.items.length}${shortfallText(report)}`);
+    if (o.lenderOutcomes.length) {
+      const by = (s: string) => o.lenderOutcomes.filter((x) => x.status === s).length;
+      log(`**Lender coverage:** ${o.lenderOutcomes.length} lenders — ${by("scraped")} read live, ${by("cached")} from cache, ${by("unavailable")} data unavailable, ${by("blocked")} blocked (robots.txt / login wall)`);
+      for (const x of o.lenderOutcomes.filter((y) => y.status === "unavailable" || y.status === "blocked")) log(`- ${x.name}: ${x.status}${x.reason ? ` — ${x.reason}` : ""}`);
+    }
     log("");
     log("```");
     log(`${rpad("#", 2)}  ${pad("Label", 12)} ${pad("Lender", 30)} ${pad("Product", 34)} ${pad("Cat.", 12)} ${rpad("Score", 5)}  ${pad("Amount", 22)} ${pad("Rate", 24)} ${pad("Term", 19)} ${pad("Speed", 16)} Est. monthly`);
@@ -143,7 +148,7 @@ async function main() {
 
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, lines.join("\n") + "\n");
-  writeFileSync(out.replace(/\.md$/, ".json"), JSON.stringify(outcomes.map((o) => ({ persona: o.persona.id, profile: o.profile, report: o.report, flags: o.flags, oracle: o.oracle, personaChecks: o.personaChecks, extractionMismatches: o.extractionMismatches })), null, 2));
+  writeFileSync(out.replace(/\.md$/, ".json"), JSON.stringify(outcomes.map((o) => ({ persona: o.persona.id, profile: o.profile, report: o.report, flags: o.flags, oracle: o.oracle, personaChecks: o.personaChecks, extractionMismatches: o.extractionMismatches, lenderOutcomes: o.lenderOutcomes })), null, 2));
   console.error(`\nWrote ${out} and ${out.replace(/\.md$/, ".json")}`);
   await prisma.$disconnect().catch(() => {});
   if (strict && bad > 0) process.exit(1);

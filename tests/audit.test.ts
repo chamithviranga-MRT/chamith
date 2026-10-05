@@ -54,6 +54,13 @@ describe("claim audit", () => {
     expect(auditReport(c2.report, { products: c2.products, profile: c2.pr, checkDomains: true }).some((x) => x.kind === "domain_mismatch")).toBe(true);
   });
 
+  it("does not demand an 'estimate' label from a payment line that shows no dollar figure", async () => {
+    const { report, products, pr } = await clean();
+    report.items[0].reasoning.estimatedPayment = "No monthly payment can be calculated because the lender publishes no rate.";
+    report.items[1].reasoning.estimatedPayment = "Repayment depends on how you draw; nothing to calculate here.";
+    expect(summarizeFlags(auditReport(report, { products, profile: pr })).unlabelled_estimate ?? 0).toBe(0);
+  });
+
   it("flags unlabelled estimates, promises, foreign URLs and a missing disclaimer", async () => {
     const { report, products, pr } = await clean();
     report.items[0].reasoning.estimatedPayment = "You will pay $1,600 a month.";

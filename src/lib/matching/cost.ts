@@ -53,7 +53,8 @@ export function chooseTerm(
   let assumed = false;
   let note: string;
 
-  if (preferred !== null) {
+  if (preferred !== null && (lo !== null || hi !== null)) {
+    // only meaningful when the lender publishes at least one bound; otherwise we would be inventing feasibility
     months = Math.min(hi ?? Infinity, Math.max(lo ?? 0, preferred));
     note = months === preferred ? `your preferred ${preferred}-month term` : `${months} months (your preferred ${preferred} adjusted to the lender's published range)`;
   } else if (lo !== null && hi !== null) {
@@ -71,7 +72,7 @@ export function chooseTerm(
   } else {
     months = dflt;
     assumed = true;
-    note = `${months} months (assumed typical for this product type; the lender publishes no term)`;
+    note = `${months} months (assumed typical for this product type; the lender publishes no term${preferred !== null ? `, so your preferred ${preferred} months could not be checked against it` : ""})`;
   }
   if (bounds.max !== undefined && months > bounds.max) {
     months = Math.max(bounds.max, lo ?? 1);

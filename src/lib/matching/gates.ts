@@ -25,6 +25,7 @@ const g = (id: Gate["id"], label: string, status: Gate["status"], detail: string
 function amountGate({ profile, p }: Ctx): Gate {
   const a = profile.amountNeeded;
   if (a === null) return g("amount", "Amount", "unknown", "Amount needed not provided.");
+  if (p.productType === "business_card" && p.maxAmount === null) return g("amount", "Amount", "borderline", `The credit limit is set at approval and is not published; confirm a card could reach ${usd(a)}.`, { fix: "Ask the issuer what credit limit you would be offered." });
   if (p.minAmount === null && p.maxAmount === null) return g("amount", "Amount", "unknown", "Lender does not publish an amount range.");
   if (p.minAmount !== null && a < p.minAmount) return g("amount", "Amount", "fail", `Minimum is ${usd(p.minAmount)}; you need ${usd(a)}.`, { fix: `Request at least ${usd(p.minAmount)} (you asked for ${usd(a)}).` });
   if (p.maxAmount !== null && a > p.maxAmount) return g("amount", "Amount", "fail", `Maximum is ${usd(p.maxAmount)}; you need ${usd(a)}.`, { fix: `Reduce the request to ${usd(p.maxAmount)} or less, or combine with a second source (you asked for ${usd(a)}).` });

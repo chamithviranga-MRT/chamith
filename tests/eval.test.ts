@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PERSONAS } from "@/lib/eval/personas";
 import { fixtureProducts, FIXTURE_NOTICE } from "@/lib/eval/fixtures";
-import { evaluatePersona, oracleViolations } from "@/lib/eval/run";
+import { evaluatePersona, oracleViolations, shortfallText, type LoadedProducts } from "@/lib/eval/run";
 import { auditReport } from "@/lib/eval/audit";
 import { rankProducts } from "@/lib/matching/rank";
 import { emptyProfile } from "@/lib/profile/schema";
@@ -74,5 +74,36 @@ describe("evaluation personas on the synthetic catalog (offline, deterministic)"
     const a = rankProducts({ profile: p, products, now }).top.map((t) => t.product.id);
     const b = rankProducts({ profile: p, products: [...products].reverse(), now }).top.map((t) => t.product.id);
     expect(a).toEqual(b);
+  });
+});
+
+describe("live-mode plumbing", () => {
+  const stats = { sourcesRead: 7, sourcesFromCache: 2, lendersTotal: 3, lendersScanned: 2, lendersCached: 1, lendersUnavailable: 1, discoveredNew: 0, productsFound: products.length, concurrency: 2, startedAt: now.toISOString(), finishedAt: now.toISOString() };
+  const outcomes: LoadedProducts["outcomes"] = [
+    { slug: "fixture-a", name: "Fixture A", status: "scraped", products: 2, sourcesRead: 3, dataAgeDays: 0 },
+    { slug: "fixture-b", name: "Fixture B", status: "unavailable", products: 0, reason: "No usable product data found on 3 page(s) read.", sourcesRead: 3, dataAgeDays: null },
+    { slug: "fixture-c", name: "Fixture C", status: "cached", products: 1, sourcesRead: 0, dataAgeDays: 2 },
+  ];
+
+  it("keeps the pipeline's per-lender outcomes and real source counts in the report", async () => {
+    const o = await evaluatePersona({ persona: PERSONAS[1], products: [], client: null, now, loadProducts: async () => ({ products, outcomes, stats }) });
+    expect(o.lenderOutcomes).toHaveLength(3);
+    expect(o.report.lenders.map((l) => l.status)).toEqual(expect.arrayContaining(["scraped", "unavailable", "cached"]));
+    expect(o.report.lenders.find((l) => l.slug === "fixture-b")?.reason).toMatch(/No usable product data/);
+    expect(o.report.stats).toMatchObject({ sourcesRead: 7, sourcesFromCache: 2, lendersTotal: 3 });
+  });
+
+  it("a plain product array (fixtures) still works and has no lender outcomes", async () => {
+    const o = await evaluatePersona({ persona: PERSONAS[1], products: [], client: null, now, loadProducts: async () => products });
+    expect(o.lenderOutcomes).toEqual([]);
+  });
+
+  it("explains a short list from the engine's notes, never with an empty string", () => {
+    expect(shortfallText({ items: new Array(10).fill(0) as never, notes: [] })).toBe("");
+    expect(shortfallText({ items: new Array(6).fill(0) as never, notes: ["14 products from 5 lenders…", "Only 6 products passed the hard filters, so fewer than 10 are shown."] })).toMatch(/fewer than 10 — Only 6 products passed/);
+    expect(shortfallText({ items: new Array(8).fill(0) as never, notes: ["At most 2 products per lender are shown; 3 further passing products were held back."] })).toMatch(/At most 2 products per lender/);
+    const none = shortfallText({ items: new Array(4).fill(0) as never, notes: [] });
+    expect(none).not.toMatch(/: \)/);
+    expect(none).toMatch(/lender coverage/);
   });
 });

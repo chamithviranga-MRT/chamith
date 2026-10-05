@@ -8,6 +8,7 @@ import { generateReasoning } from "@/lib/reasoning/claude";
 import { buildReport } from "@/lib/report/build";
 import type { Report } from "@/lib/report/types";
 import type { StoredProduct } from "@/lib/types";
+import type { LenderOutcome, PipelineResult } from "@/lib/firecrawl/pipeline";
 import { auditReport, type Flag } from "./audit";
 import type { Persona } from "./personas";
 
@@ -24,6 +25,22 @@ export interface PersonaOutcome {
   oracle: string[];
   personaChecks: string[];
   products: number;
+  /** Per-lender research outcomes; empty when the products came from fixtures. */
+  lenderOutcomes: LenderOutcome[];
+}
+
+/** Why fewer than 10 products are shown, taken from the engine's own notes (never an empty explanation). */
+export function shortfallText(report: Pick<Report, "items" | "notes">, topN = 10): string {
+  if (report.items.length >= topN) return "";
+  const why = report.notes.filter((n) => /^(Only|At most)/.test(n)).join(" ");
+  return ` (fewer than ${topN} — ${why || "see the lender coverage below"})`;
+}
+
+/** What a live loader returns: the products plus how each lender fared. */
+export interface LoadedProducts {
+  products: StoredProduct[];
+  outcomes: LenderOutcome[];
+  stats: PipelineResult["stats"];
 }
 
 /** Independent re-statement of the eligibility rules in plain code. Returns the reasons a product is NOT eligible. */
@@ -87,7 +104,7 @@ export async function evaluatePersona(opts: {
   /** Use Claude for profile extraction and reasoning when a client is given. */
   now?: Date;
   /** Called with the confirmed profile when the products must be fetched live. */
-  loadProducts?: (profile: Profile) => Promise<StoredProduct[]>;
+  loadProducts?: (profile: Profile) => Promise<StoredProduct[] | LoadedProducts>;
 }): Promise<PersonaOutcome> {
   const { persona, client } = opts;
   const extraction = await processUserMessage({ text: persona.text, current: emptyProfile(), lastAssistant: null, extractor: client ? createClaudeExtractor(client) : null });
@@ -99,13 +116,17 @@ export async function evaluatePersona(opts: {
     if (JSON.stringify(got) !== JSON.stringify(expected)) mismatches.push(`${k}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(got)}`);
   }
 
-  const products = opts.loadProducts ? await opts.loadProducts(profile) : opts.products;
+  const loaded = opts.loadProducts ? await opts.loadProducts(profile) : opts.products;
+  const live = Array.isArray(loaded) ? null : loaded;
+  const products = Array.isArray(loaded) ? loaded : loaded.products;
   const now = opts.now ?? new Date();
   const rank = rankProducts({ profile, products, now });
   const reasoning = await generateReasoning({ items: rank.top, profile, client });
   const report = buildReport({
-    ranked: rank, reasoning, now, outcomes: [],
-    stats: { sourcesRead: 0, sourcesFromCache: 0, lendersTotal: new Set(products.map((p) => p.lender.slug)).size, discoveredNew: 0, productsFound: products.length },
+    ranked: rank, reasoning, now, outcomes: live?.outcomes ?? [],
+    stats: live
+      ? { sourcesRead: live.stats.sourcesRead, sourcesFromCache: live.stats.sourcesFromCache, lendersTotal: live.stats.lendersTotal, discoveredNew: live.stats.discoveredNew, productsFound: live.stats.productsFound }
+      : { sourcesRead: 0, sourcesFromCache: 0, lendersTotal: new Set(products.map((p) => p.lender.slug)).size, discoveredNew: 0, productsFound: products.length },
   });
   const flags = auditReport(report, { products, profile, checkDomains: true });
 
@@ -121,5 +142,5 @@ export async function evaluatePersona(opts: {
   }
 
   const personaChecks = PERSONA_CHECKS[persona.id]?.({ rank, report, profile }) ?? [];
-  return { persona, profile, extractionMismatches: mismatches, missingRequired: extraction.missing, mode: extraction.mode, rank, report, flags, oracle, personaChecks, products: products.length };
+  return { persona, profile, extractionMismatches: mismatches, missingRequired: extraction.missing, mode: extraction.mode, rank, report, flags, oracle, personaChecks, products: products.length, lenderOutcomes: live?.outcomes ?? [] };
 }

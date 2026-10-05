@@ -61,7 +61,8 @@ export function auditReport(report: Report, opts: { products?: StoredProduct[]; 
     for (const issue of issues) at("unsourced_claim", issue);
 
     // ---- estimates must be labelled ---------------------------------------------------------------
-    if (!ESTIMATE_RE.test(it.reasoning.estimatedPayment ?? "")) at("unlabelled_estimate", "The payment line is not labelled as an estimate.");
+    const payLine = it.reasoning.estimatedPayment ?? "";
+    if (/\$\s?\d/.test(payLine) && !ESTIMATE_RE.test(payLine)) at("unlabelled_estimate", "The payment line shows a figure but is not labelled as an estimate.");
     if (it.cost.monthlyPayment !== null && !it.cost.assumptions?.length) at("unlabelled_estimate", "A payment is shown without the assumptions behind it.");
   }
   return flags;

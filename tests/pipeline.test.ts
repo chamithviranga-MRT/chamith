@@ -91,6 +91,19 @@ describe("research pipeline", () => {
     expect(lastCounts).toMatchObject({ sourcesRead: 3, lendersDone: 3, lendersTotal: 3, productsFound: 3 });
   });
 
+  it("applies the lender cap in registry order, whatever order the repo lists lenders in", async () => {
+    const slugs = ["a", "b", "c", "d", "e", "f"];
+    const pages = Object.fromEntries(slugs.map((s) => [`https://${s}.example/business-loans`, page(`${s.toUpperCase()} Loan`)]));
+    const registry = slugs.map((s) => L(s, `${s}.example`));
+    // pre-seed the repo so it lists the lenders in reverse order
+    const repo = new MemoryRepo();
+    for (const l of [...registry].reverse()) await repo.upsertLender(l);
+    const web = new FakeWeb(pages);
+    const r = await run(web, repo, registry, { maxLenders: 3 });
+    expect(r.products.map((p) => p.record.productName).sort()).toEqual(["A Loan", "B Loan", "C Loan"]);
+    expect(web.scrapes.some((u) => /\/\/[def]\.example/.test(u))).toBe(false);
+  });
+
   it("never exceeds the concurrency Firecrawl reports", async () => {
     const pages: Record<string, PageResult> = {};
     const reg: LenderInput[] = [];
