@@ -1,5 +1,7 @@
 # Deploying LendMatch
 
+> **Internal use only?** Do not use this guide. It puts the tool on the public internet. Follow [`INTERNAL.md`](INTERNAL.md) instead: your own server, access code required, nothing published.
+
 Two ways to put LendMatch online. Pick one:
 
 | | **A. Share the demo** | **B. Run the full app** |
@@ -24,7 +26,7 @@ Start with A to show people something today; do B when you want it live.
    - **Netlify Drop**: sign in at app.netlify.com, open *Drop*, drag the folder onto the page. You get a `https://<name>.netlify.app` link in seconds.
    - **GitHub Pages**: *Settings, Pages*, deploy from a branch and the folder holding the file (a private repo needs a paid GitHub plan for this).
    - **Cloudflare Pages**: *Workers & Pages, Create, Pages, Upload assets*.
-4. Open the link and run the restaurant example from the README.
+4. Open the link and paste this example: "I own a restaurant in Austin, TX that's been open for 3 years. My FICO is 700 and we do about $60,000 a month in revenue. I want an $80,000 loan to expand into a second location, ideally repaid over 5 years."
 
 Things to know:
 - The banner at the top shows how old the data snapshot is. After 7 days it says the data is older than the 7-day limit and should be treated as illustrative. That is deliberate.
@@ -98,7 +100,7 @@ Without an Anthropic key the app still runs, in a reduced "offline extraction" m
 
 ### 6. Check it works
 Open the Vercel URL. Your browser asks for a username and password: any username, password = `LENDMATCH_ACCESS_CODE`. Then:
-1. Paste the restaurant example from the README, press **Confirm & research**: you should see 10 results.
+1. Paste this example ("I own a restaurant in Austin, TX that's been open for 3 years. My FICO is 700 and we do about $60,000 a month in revenue. I want an $80,000 loan to expand into a second location, ideally repaid over 5 years."), then press **Confirm & research**: you should see 10 results.
 2. Press **Export PDF** and **Export DOCX**.
 3. Press **Delete my data**.
 4. In Vercel, *Logs*: look for errors.

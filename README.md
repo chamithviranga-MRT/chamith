@@ -45,7 +45,9 @@ Follow-up chat ("What if I only want SBA loans?") re-ranks from the cache withou
 
 ## Deploying
 
-Step-by-step guide (share the demo in 5 minutes, or run the full app on Vercel + Neon): [`docs/DEPLOY.md`](docs/DEPLOY.md). Deployment helpers: `LENDMATCH_ACCESS_CODE` puts the whole site behind a password (a public deployment spends your API credits), `npm run cache:warm` fills the lender cache, `npm run cache:import` loads the bundled snapshot so a first test costs nothing.
+**Internal use only (your own server, nothing public): [`docs/INTERNAL.md`](docs/INTERNAL.md)** — `docker compose up`, access code required, database never published.
+
+Public-cloud guide (share the demo in 5 minutes, or run the full app on Vercel + Neon): [`docs/DEPLOY.md`](docs/DEPLOY.md). Deployment helpers: `LENDMATCH_ACCESS_CODE` puts the whole site behind a password (a public deployment spends your API credits), `npm run cache:warm` fills the lender cache, `npm run cache:import` loads the bundled snapshot so a first test costs nothing.
 
 ## Standalone demo (one HTML file)
 
