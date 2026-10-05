@@ -9,6 +9,8 @@ export interface ResearchRepo {
   updateLender(id: string, patch: Partial<Pick<LenderRow, "domain" | "status" | "statusReason" | "lastScrapedAt">>): Promise<void>;
   listLenders(): Promise<LenderRow[]>;
   productsForLender(lenderId: string): Promise<StoredProduct[]>;
+  /** Unexpired products for the given lender slugs (used to re-rank from cache without any web access). */
+  freshProductsForSlugs(slugs: string[], now: Date): Promise<StoredProduct[]>;
   replaceProducts(lenderId: string, records: ProductRecord[], now: Date, ttlMs: number): Promise<void>;
   recordPage(url: string, lenderId: string, status: string, productCount: number, error?: string): Promise<void>;
   getRobots(host: string, maxAgeMs: number, now: Date): Promise<string | null>;
@@ -43,6 +45,10 @@ export class MemoryRepo implements ResearchRepo {
   }
   async productsForLender(lenderId: string) {
     return this.products.get(lenderId) ?? [];
+  }
+  async freshProductsForSlugs(slugs: string[], now: Date) {
+    const ids = [...this.lenders.values()].filter((l) => slugs.includes(l.slug)).map((l) => l.id);
+    return ids.flatMap((id) => (this.products.get(id) ?? []).filter((p) => p.expiresAt > now));
   }
   async replaceProducts(lenderId: string, records: ProductRecord[], now: Date, ttlMs: number) {
     const lender = this.lenders.get(lenderId)!;
@@ -100,6 +106,16 @@ export class PrismaRepo implements ResearchRepo {
     for (const p of await prisma.product.findMany({ where: { lenderId } })) {
       const parsed = ProductRecordSchema.safeParse(p.data);
       if (parsed.success) out.push({ id: p.id, lender: row, record: parsed.data, scrapedAt: p.scrapedAt, expiresAt: p.expiresAt });
+    }
+    return out;
+  }
+  async freshProductsForSlugs(slugs: string[], now: Date): Promise<StoredProduct[]> {
+    if (!slugs.length) return [];
+    const rows = await prisma.product.findMany({ where: { expiresAt: { gt: now }, lender: { slug: { in: slugs } } }, include: { lender: true } });
+    const out: StoredProduct[] = [];
+    for (const p of rows) {
+      const parsed = ProductRecordSchema.safeParse(p.data);
+      if (parsed.success) out.push({ id: p.id, lender: toLenderRow(p.lender), record: parsed.data, scrapedAt: p.scrapedAt, expiresAt: p.expiresAt });
     }
     return out;
   }

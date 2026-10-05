@@ -37,7 +37,12 @@ export function Chat() {
   const [progress, setProgress] = useState<ProgressState>(initialProgress);
   const [report, setReport] = useState<Report | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
+  const [followUpBusy, setFollowUpBusy] = useState(false);
+  const [followUpNote, setFollowUpNote] = useState<string | null>(null);
+  const [refreshingSlug, setRefreshingSlug] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const lastRunScrolled = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +79,14 @@ export function Chat() {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
+  // bring a freshly produced report into view once (not on every follow-up)
+  useEffect(() => {
+    if (report && runId && lastRunScrolled.current === null && !researching && progress.lenders.length > 0) {
+      lastRunScrolled.current = runId;
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [report, runId, researching, progress.lenders.length]);
+
   const deleteMyData = useCallback(async () => {
     if (!window.confirm("Delete this chat, your profile and all research reports from our database? This cannot be undone.")) return;
     await fetch("/api/session", { method: "DELETE" });
@@ -83,6 +96,7 @@ export function Chat() {
     setConfirmed(false);
     setReport(null);
     setRunId(null);
+    setFollowUpNote(null);
     setProgress(initialProgress);
     setNotice("Your data has been deleted. A new anonymous session will start when you next send a message.");
   }, []);
@@ -138,6 +152,44 @@ export function Chat() {
       setResearching(false);
     }
   }, []);
+
+  const callRerank = useCallback(async (payload: { message?: string; refreshSlug?: string }) => {
+    const res = await fetch("/api/rerank", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setFollowUpNote(data.error ?? `Request failed (HTTP ${res.status}).`);
+      return;
+    }
+    if (data.changed) {
+      setReport(data.report as Report);
+      setRunId(data.runId as string);
+    }
+    setFollowUpNote(data.note ?? null);
+  }, []);
+
+  const followUp = useCallback(async (text: string) => {
+    setFollowUpBusy(true);
+    setFollowUpNote(null);
+    try {
+      await callRerank({ message: text });
+    } catch {
+      setFollowUpNote("Network error — please try again.");
+    } finally {
+      setFollowUpBusy(false);
+    }
+  }, [callRerank]);
+
+  const refreshLender = useCallback(async (slug: string) => {
+    setRefreshingSlug(slug);
+    setFollowUpNote(null);
+    try {
+      await callRerank({ refreshSlug: slug });
+    } catch {
+      setFollowUpNote("Network error — please try again.");
+    } finally {
+      setRefreshingSlug(null);
+    }
+  }, [callRerank]);
 
   const saveProfile = useCallback(async (edits: Partial<Profile>, confirm: boolean): Promise<string[] | null> => {
     const res = await fetch("/api/profile", {
@@ -229,21 +281,39 @@ export function Chat() {
         </form>
       </section>
 
-      {profile && (
-        <ProfileCard
-          profile={profile ?? emptyProfile()}
-          missing={missing}
-          disabled={busy || researching}
-          onSave={(e) => saveProfile(e, false)}
-          onConfirm={async (e) => {
-            const errs = await saveProfile(e, true);
-            if (!errs) void startResearch();
-            return errs;
-          }}
-        />
+      {!report && (researching || progress.lenders.length > 0 || progress.error) && <ProgressPanel state={progress} />}
+      {report && (
+        <div ref={resultsRef} className="scroll-mt-4">
+          <Results report={report} runId={runId} onRefresh={refreshLender} refreshingSlug={refreshingSlug} onFollowUp={followUp} followUpBusy={followUpBusy} followUpNote={followUpNote} />
+        </div>
       )}
-      {(researching || (progress.lenders.length > 0 || progress.error) ) && !report && <ProgressPanel state={progress} />}
-      {report && <Results report={report} runId={runId} />}
+      {profile &&
+        (() => {
+          const card = (
+            <ProfileCard
+              profile={profile}
+              missing={missing}
+              disabled={busy || researching}
+              onSave={(e) => saveProfile(e, false)}
+              onConfirm={async (e) => {
+                const errs = await saveProfile(e, true);
+                if (!errs) {
+                  lastRunScrolled.current = null;
+                  void startResearch();
+                }
+                return errs;
+              }}
+            />
+          );
+          return report ? (
+            <details className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <summary className="cursor-pointer text-sm font-semibold">Your profile — edit and re-run the research</summary>
+              <div className="mt-3">{card}</div>
+            </details>
+          ) : (
+            card
+          );
+        })()}
     </main>
   );
 }
