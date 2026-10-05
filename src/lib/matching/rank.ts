@@ -1,4 +1,5 @@
 import { PRODUCT_TYPE_LABEL } from "@/lib/firecrawl/productSchema";
+import { fmtSpeed } from "@/lib/report/format";
 import type { Profile } from "@/lib/profile/schema";
 import type { StoredProduct } from "@/lib/types";
 import { scoringConfig, type ScoringConfig } from "./config";
@@ -43,7 +44,12 @@ export function buildFitPoints(profile: Profile, gates: Gate[], cost: CostEstima
     if (g?.status === "pass" && !g.detail.startsWith("Lender does not")) pts.push(g.detail);
   }
   const days = fundingDays(p);
-  if (days !== null) pts.push(profile.speedNeededDays !== null ? (days <= profile.speedNeededDays ? `Funds in about ${days} day(s), within your ${profile.speedNeededDays}-day need.` : `Funds in about ${days} days (you need ${profile.speedNeededDays}).`) : `Funds in about ${days} day(s).`);
+  if (days !== null) {
+    const published = fmtSpeed(p); // the lender's own range, not our midpoint
+    const worst = p.fundingDaysMax ?? p.fundingDaysMin ?? days;
+    const need = profile.speedNeededDays;
+    pts.push(need === null ? `Funding speed: ${published}.` : worst <= need ? `Funding speed: ${published}, within your ${need}-day need.` : `Funding speed: ${published} (you need funds within ${need} days).`);
+  }
   if (cost.effectiveAprPct !== null && cost.financeCharge !== null) pts.push(`Estimated total cost ${usd(cost.financeCharge)} over ${cost.termMonths} months (effective APR about ${cost.effectiveAprPct}%).`);
   if (p.collateralRequired === "none") pts.push("No collateral required.");
   if (p.personalGuarantee === "not_required") pts.push("No personal guarantee required.");

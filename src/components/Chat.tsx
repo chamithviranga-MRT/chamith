@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Disclaimer } from "./Disclaimer";
 import { ProfileCard } from "./ProfileCard";
+import { ProgressPanel } from "./ProgressPanel";
+import { Results } from "./Results";
+import { readNdjson } from "@/lib/client/ndjson";
+import { initialProgress, progressReducer, type ProgressState } from "@/lib/client/progress";
+import type { Report } from "@/lib/report/types";
 import { emptyProfile, type Profile } from "@/lib/profile/schema";
 import { missingRequired, type MissingField } from "@/lib/profile/normalize";
 
@@ -28,6 +33,10 @@ export function Chat() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [missing, setMissing] = useState<MissingField[]>([]);
   const [confirmed, setConfirmed] = useState(false);
+  const [researching, setResearching] = useState(false);
+  const [progress, setProgress] = useState<ProgressState>(initialProgress);
+  const [report, setReport] = useState<Report | null>(null);
+  const [runId, setRunId] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +47,10 @@ export function Chat() {
         const data = await res.json();
         if (cancelled) return;
         if (Array.isArray(data.messages) && data.messages.length) setMessages(data.messages);
+        if (data.lastRun?.report) {
+          setReport(data.lastRun.report as Report);
+          setRunId(data.lastRun.id as string);
+        }
         if (data.profile?.data) {
           setProfile(data.profile.data as Profile);
           setMissing(missingRequired(data.profile.data as Profile));
@@ -68,6 +81,9 @@ export function Chat() {
     setProfile(null);
     setMissing([]);
     setConfirmed(false);
+    setReport(null);
+    setRunId(null);
+    setProgress(initialProgress);
     setNotice("Your data has been deleted. A new anonymous session will start when you next send a message.");
   }, []);
 
@@ -96,6 +112,32 @@ export function Chat() {
       setBusy(false);
     }
   }, [input, busy]);
+
+  const startResearch = useCallback(async () => {
+    setResearching(true);
+    setReport(null);
+    setRunId(null);
+    setProgress({ ...initialProgress, stage: "Starting research…" });
+    try {
+      const res = await fetch("/api/research", { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setProgress((p) => ({ ...p, error: err.error ?? `Research could not start (HTTP ${res.status}).` }));
+        return;
+      }
+      await readNdjson(res, (ev) => {
+        if (ev.event === "run") setRunId(ev.data.runId as string);
+        else if (ev.event === "report") {
+          setReport(ev.data.report as Report);
+          setRunId(ev.data.runId as string);
+        } else setProgress((p) => progressReducer(p, ev));
+      });
+    } catch {
+      setProgress((p) => ({ ...p, error: "The connection dropped during research. Your confirmed profile is saved; press “Confirm & research” again to retry (cached lenders will be reused)." }));
+    } finally {
+      setResearching(false);
+    }
+  }, []);
 
   const saveProfile = useCallback(async (edits: Partial<Profile>, confirm: boolean): Promise<string[] | null> => {
     const res = await fetch("/api/profile", {
@@ -191,16 +233,17 @@ export function Chat() {
         <ProfileCard
           profile={profile ?? emptyProfile()}
           missing={missing}
-          disabled={busy}
+          disabled={busy || researching}
           onSave={(e) => saveProfile(e, false)}
-          onConfirm={(e) => saveProfile(e, true)}
+          onConfirm={async (e) => {
+            const errs = await saveProfile(e, true);
+            if (!errs) void startResearch();
+            return errs;
+          }}
         />
       )}
-      {confirmed && (
-        <p role="status" className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100">
-          Profile confirmed.
-        </p>
-      )}
+      {(researching || (progress.lenders.length > 0 || progress.error) ) && !report && <ProgressPanel state={progress} />}
+      {report && <Results report={report} runId={runId} />}
     </main>
   );
 }
