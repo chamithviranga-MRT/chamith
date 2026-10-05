@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { verifyProduct, toProductRecords, cleanLabel, looksLikeInjection, moneyAppears, percentAppears, monthsAppear, daysAppear, normText } from "@/lib/firecrawl/verify";
+import { aprAppears, cleanCached, isUsableRecord, sanitizeRecord, verifyProduct, toProductRecords, cleanLabel, looksLikeInjection, moneyAppears, percentAppears, monthsAppear, daysAppear, normText } from "@/lib/firecrawl/verify";
 import { ExtractedProductSchema, type ExtractedProduct } from "@/lib/firecrawl/productSchema";
 import { isAllowed, parseRobots } from "@/lib/firecrawl/robots";
 import { isDeniedUrl, looksLikeLoginWall, rankProductUrls, registrableDomain, sameSite } from "@/lib/firecrawl/urls";
 import { buildDiscoveryQueries, candidatesFromSearch } from "@/lib/firecrawl/discovery";
 import { createLimiter, runPool, withRetry } from "@/lib/firecrawl/pool";
 import { emptyProfile } from "@/lib/profile/schema";
+import { product } from "./helpers";
 import { normalizeProfile } from "@/lib/profile/normalize";
 
 export const blank = (): ExtractedProduct =>
@@ -77,6 +78,58 @@ describe("grounding verification: a value survives only if the page text contain
   });
 });
 
+describe("an APR must be an annual rate, not a periodic fee", () => {
+  const AMEX = normText("Know your costs upfront: your monthly loan fee is disclosed before you accept your loan. Monthly loan fees range from 0.55% to 1.55% and are a percentage of your principal spread out equally each month over the life of the loan. No origination fees, annual fees, application fees, or prepayment penalties.");
+  it("rejects the monthly-fee percentages from a real lender page", () => {
+    expect(percentAppears(AMEX, 0.55)).toBe(true); // the number is on the page…
+    expect(aprAppears(AMEX, 0.55)).toBe(false); // …but it is not an APR
+    expect(aprAppears(AMEX, 1.55)).toBe(false);
+  });
+  it("accepts a genuine APR, with or without the word APR, and annual wording beats a nearby fee", () => {
+    expect(aprAppears(normText("Rates from 7.8% APR."), 7.8)).toBe(true);
+    expect(aprAppears(normText("Rates start at 7.8% for qualified borrowers."), 7.8)).toBe(true);
+    expect(aprAppears(normText("A monthly fee applies. Interest rates are 9.5% per year."), 9.5)).toBe(true);
+    expect(aprAppears(normText("Nothing about 4% here."), 7.8)).toBe(false);
+  });
+  it("verifyProduct nulls such a value and reports it as unverified", () => {
+    const { product, unverified } = verifyProduct({ ...blank(), aprMin: 0.55, aprMax: 1.55, minAmount: 10000 }, AMEX + " Borrow $10,000.");
+    expect(product.aprMin).toBeNull();
+    expect(product.aprMax).toBeNull();
+    expect(unverified).toEqual(expect.arrayContaining(["aprMin", "aprMax"]));
+    expect(product.minAmount).toBe(10000);
+  });
+});
+
+describe("record sanitising and cache cleaning", () => {
+  const ctx = { lenderSlug: "bofa", lenderName: "BofA", sourceUrl: "https://bofa.example/business-loans", scrapedAt: new Date("2026-10-01T00:00:00Z") };
+  const rec = (over: object = {}) => toProductRecords([{ ...blank(), productName: "Acme Term Loan", productType: "term_loan" as const, minAmount: 10000, ...over }], PAGE, ctx)[0];
+
+  it("treats a 0% APR as promotional, and a 0 minimum as 'not stated'", () => {
+    const r = sanitizeRecord({ ...rec(), aprMin: 0, aprMax: 26.74, minAmount: 0, termMinMonths: 0 });
+    expect(r).toMatchObject({ aprMin: null, aprMax: 26.74, minAmount: null, termMinMonths: null });
+    expect(r.unverifiedFields).toContain("aprMin");
+  });
+
+  it("a product with no listed uses that finances vehicles is vehicle-only, so it fails a real-estate or expansion purpose", () => {
+    const auto = sanitizeRecord({ ...rec(), productName: "Business Advantage Auto Loan", evidenceQuote: "Buy cars, vans or light trucks." });
+    expect(auto.eligiblePurposes).toEqual(["equipment"]);
+    expect(sanitizeRecord({ ...rec(), productName: "Acme Term Loan" }).eligiblePurposes).toEqual([]);
+    expect(sanitizeRecord({ ...rec(), productName: "Fleet Loan", eligiblePurposes: ["working_capital"] }).eligiblePurposes).toEqual(["working_capital"]);
+  });
+
+  it("re-judges cached rows: drops article pages, other countries' pages and identifier names; removes duplicates", () => {
+    const mk = (over: object, lenderOver = {}) => product(over, { slug: "x", ...lenderOver });
+    const good = mk({ productName: "Good Loan" });
+    const dup = mk({ productName: "Good Loan (copy)" }); // identical facts on the same page
+    const article = mk({ productName: "Some Loan", sourceUrl: "https://x.example/learn-grow/business-resources/loan-vs-card" });
+    const uk = mk({ productName: "UK Loan", sourceUrl: "https://x.example/uk/small-business-loans" });
+    const ident = mk({ productName: "business_credit_card" });
+    const out = cleanCached([good, dup, article, uk, ident]).map((p) => p.record.productName);
+    expect(out).toEqual(["Good Loan"]);
+    expect(isUsableRecord(good.record)).toBe(true);
+  });
+});
+
 describe("toProductRecords", () => {
   const ctx = { lenderSlug: "acme", lenderName: "Acme", sourceUrl: "https://acme.example/loans", scrapedAt: new Date("2026-10-01T00:00:00Z") };
 
@@ -142,10 +195,11 @@ describe("URL safety and ranking", () => {
     "https://x.example/my-account/loans", "https://x.example/portal/dashboard", "http://x.example/loans", "https://x.example/blog/best-loans",
     "https://x.example/files/rates.pdf", "https://x.example/careers", "https://x.example/privacy",
     "https://x.example/resources/business-loan-basics", "https://x.example/learn/sba-loans", "https://x.example/insights/what-is-a-line-of-credit",
+    "https://www.fundingcircle.com/uk/small-business-loans", "https://x.example/en-ca/business-loans", "https://x.co.uk/business-loans", "https://lender.ca/loans", "https://x.example/au/loans",
     "https://x.example/small-business/guides/choosing-a-loan", "https://x.example/business-loans/compare", "https://x.example/articles/term-loan-vs-loc",
   ])("never fetches %s", (u) => expect(isDeniedUrl(u)).toBe(true));
 
-  it.each(["https://x.example/small-business/loans", "https://x.example/business/sba-loans/7a", "https://x.example/equipment-financing"])("allows %s", (u) => expect(isDeniedUrl(u)).toBe(false));
+  it.each(["https://x.example/en-us/business-loans", "https://x.example/california/business-loans", "https://x.example/small-business/loans", "https://x.example/business/sba-loans/7a", "https://x.example/equipment-financing"])("allows %s", (u) => expect(isDeniedUrl(u)).toBe(false));
 
   it("ranks product-like same-site pages first and drops other sites / login pages", () => {
     const links = [

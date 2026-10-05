@@ -1,10 +1,10 @@
 import { allowedNumbers, checkReasoning, numbersIn } from "@/lib/reasoning/verify";
-import { sameSite } from "@/lib/firecrawl/urls";
+import { isDeniedUrl, sameSite } from "@/lib/firecrawl/urls";
 import type { Profile } from "@/lib/profile/schema";
 import type { Report, ReportItem } from "@/lib/report/types";
 import type { StoredProduct } from "@/lib/types";
 
-export type FlagKind = "missing_source" | "unsourced_claim" | "unlabelled_estimate" | "stale_data" | "domain_mismatch" | "missing_disclaimer";
+export type FlagKind = "missing_source" | "unsourced_claim" | "unlabelled_estimate" | "stale_data" | "domain_mismatch" | "bad_source" | "missing_disclaimer";
 
 export interface Flag {
   kind: FlagKind;
@@ -34,6 +34,7 @@ export function auditReport(report: Report, opts: { products?: StoredProduct[]; 
 
     // ---- source + date -------------------------------------------------------------------------
     if (!/^https:\/\/[^\s]+$/.test(it.sourceUrl ?? "")) at("missing_source", "No https source URL.");
+    if (/^https:\/\/[^\s]+$/.test(it.sourceUrl ?? "") && isDeniedUrl(it.sourceUrl)) at("bad_source", "The source is not a US product page (an article, another country's site, or a login/account page).");
     if (!it.scrapedAt || Number.isNaN(Date.parse(it.scrapedAt))) at("missing_source", "No scraped date.");
     const cite = it.reasoning.citation ?? "";
     if (!cite.includes(it.sourceUrl ?? "\u0000") || !/scraped/i.test(cite)) at("missing_source", "Reasoning does not cite the source URL and scraped date.");
@@ -69,7 +70,7 @@ export function auditReport(report: Report, opts: { products?: StoredProduct[]; 
 }
 
 export function summarizeFlags(flags: Flag[]): Record<FlagKind, number> {
-  const out = { missing_source: 0, unsourced_claim: 0, unlabelled_estimate: 0, stale_data: 0, domain_mismatch: 0, missing_disclaimer: 0 } as Record<FlagKind, number>;
+  const out = { missing_source: 0, unsourced_claim: 0, unlabelled_estimate: 0, stale_data: 0, domain_mismatch: 0, bad_source: 0, missing_disclaimer: 0 } as Record<FlagKind, number>;
   for (const f of flags) out[f.kind]++;
   return out;
 }

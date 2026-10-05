@@ -189,6 +189,38 @@ describe("research pipeline", () => {
     expect(web.scrapes).toHaveLength(3);
   });
 
+  it("remembers a lender that was read but had nothing usable, so retries do not burn credits; transient failures are not remembered", async () => {
+    const empty: PageResult = { url: "", markdown: "# Nothing here", json: { products: [] } };
+    const web = new FakeWeb({ "https://a.example/business-loans": empty, "https://b.example/business-loans": page("B Loan") });
+    const repo = new MemoryRepo();
+    let t = new Date("2026-10-01T00:00:00Z");
+    const reg = [L("a", "a.example"), L("b", "b.example")];
+    const first = await run(web, repo, reg, { now: () => t });
+    expect(first.outcomes.find((o) => o.slug === "a")).toMatchObject({ status: "unavailable" });
+    const scrapesAfterFirst = web.scrapes.length;
+
+    t = new Date("2026-10-01T10:00:00Z"); // 10 h later
+    const second = await run(web, repo, reg, { now: () => t });
+    expect(web.scrapes.filter((u) => u.startsWith("https://a.example"))).toHaveLength(scrapesAfterFirst - web.scrapes.slice(0, scrapesAfterFirst).filter((u) => u.startsWith("https://b.example")).length);
+    expect(second.outcomes.find((o) => o.slug === "a")).toMatchObject({ status: "unavailable", sourcesRead: 0 });
+    expect(second.outcomes.find((o) => o.slug === "a")!.reason).toMatch(/not retried/);
+
+    const before = web.scrapes.length;
+    t = new Date("2026-10-02T12:00:00Z"); // 36 h later: tried again
+    await run(web, repo, reg, { now: () => t });
+    expect(web.scrapes.slice(before).some((u) => u.startsWith("https://a.example"))).toBe(true);
+
+    // a lender whose pages merely failed to load (network) is retried next time
+    const flaky = new FakeWeb({ "https://c.example/business-loans": page("C Loan") });
+    flaky.failures.set("https://c.example/business-loans", 99);
+    const repo2 = new MemoryRepo();
+    const t0 = new Date("2026-10-01T00:00:00Z");
+    await run(flaky, repo2, [L("c", "c.example")], { now: () => t0 });
+    const n = flaky.scrapes.length;
+    await run(flaky, repo2, [L("c", "c.example")], { now: () => new Date(t0.getTime() + 3_600_000) });
+    expect(flaky.scrapes.length).toBeGreaterThan(n);
+  });
+
   it("an expired cache is NOT used when the refresh fails (stale data is never ranked)", async () => {
     const web = new FakeWeb({ "https://a.example/business-loans": page("A Loan") });
     const repo = new MemoryRepo();

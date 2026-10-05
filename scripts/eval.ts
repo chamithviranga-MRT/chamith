@@ -5,6 +5,7 @@
  *   npm run eval -- --mode=fixtures   # force the synthetic catalog (fictional lenders; NOT real data)
  *   npm run eval -- --mode=live       # real Firecrawl research (needs FIRECRAWL_API_KEY, DATABASE_URL)
  *   npm run eval -- --persona=nonus-llc --strict --out=reports/eval.md
+ *   npm run eval -- --mode=live --refresh=amex-business-loc,capital-one   # re-read these lenders even if cached
  *   npm run eval -- --mode=live --no-discovery   # live, registry lenders only (LENDMATCH_MAX_LENDERS=N caps the count)
  */
 import "dotenv/config";
@@ -30,6 +31,7 @@ const has = (name: string) => process.argv.includes(`--${name}`);
 const mode = (arg("mode") ?? (process.env.FIRECRAWL_API_KEY ? "live" : "fixtures")) as "live" | "fixtures";
 const only = arg("persona");
 const strict = has("strict");
+const refresh = (arg("refresh") ?? "").split(",").map((s) => s.trim()).filter(Boolean); // lender slugs to re-read even if cached
 const noDiscovery = has("no-discovery"); // live mode: read only the registry lenders (saves Firecrawl credits)
 const out = arg("out") ?? `reports/eval-${mode}.md`;
 const client = arg("reasoning") === "template" ? null : getAnthropic();
@@ -70,7 +72,7 @@ async function main() {
     if (!process.env.DATABASE_URL) fail("--mode=live needs DATABASE_URL (Postgres) for the 7-day cache.");
     const repo = new PrismaRepo();
     loader = async (profile) => {
-      const res = await runPipeline({ profile, web, repo, registry: loadRegistry(), discovery: !noDiscovery, onEvent: (e) => e.type === "stage" && console.error(`  [research] ${e.message}`) });
+      const res = await runPipeline({ profile, web, repo, registry: loadRegistry(), discovery: !noDiscovery, forceSlugs: refresh, onEvent: (e) => e.type === "stage" && console.error(`  [research] ${e.message}`) });
       if (res.fatalError) fail(res.fatalError);
       return { products: res.products, outcomes: res.outcomes, stats: res.stats };
     };
@@ -142,7 +144,7 @@ async function main() {
     const k = summarizeFlags(o.flags);
     const flagCount = o.flags.length;
     bad += flagCount + o.oracle.length + o.personaChecks.length + o.extractionMismatches.length;
-    log(`| ${o.persona.id} | ${o.extractionMismatches.length ? `${o.extractionMismatches.length} mismatch` : "ok"} | ${o.products} | ${o.rank.passed} | ${o.report.items.length} | ${flagCount} (${k.unsourced_claim} / ${k.missing_source + k.domain_mismatch} / ${k.unlabelled_estimate} / ${k.stale_data}) | ${o.oracle.length ? o.oracle.length + " disagree" : "agree"} | ${o.personaChecks.length ? o.personaChecks.length + " failed" : "pass"} |`);
+    log(`| ${o.persona.id} | ${o.extractionMismatches.length ? `${o.extractionMismatches.length} mismatch` : "ok"} | ${o.products} | ${o.rank.passed} | ${o.report.items.length} | ${flagCount} (${k.unsourced_claim} / ${k.missing_source + k.domain_mismatch + k.bad_source} / ${k.unlabelled_estimate} / ${k.stale_data}) | ${o.oracle.length ? o.oracle.length + " disagree" : "agree"} | ${o.personaChecks.length ? o.personaChecks.length + " failed" : "pass"} |`);
   }
   log("");
   log(bad === 0 ? "**Result: PASS** — no unsourced claims, no engine/oracle disagreements, all persona checks passed." : `**Result: ${bad} ISSUE(S)** — see details above.`);

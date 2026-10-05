@@ -1,6 +1,7 @@
 import { randomUUID, createHash } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { ProductRecordSchema, type ProductRecord } from "./productSchema";
+import { cleanCached } from "./verify";
 import type { Category, LenderInput, LenderRow, LenderStatus, StoredProduct } from "@/lib/types";
 
 /** Storage for the research pipeline. Prisma in production, in-memory in unit tests. */
@@ -44,11 +45,11 @@ export class MemoryRepo implements ResearchRepo {
     return [...this.lenders.values()];
   }
   async productsForLender(lenderId: string) {
-    return this.products.get(lenderId) ?? [];
+    return cleanCached(this.products.get(lenderId) ?? []);
   }
   async freshProductsForSlugs(slugs: string[], now: Date) {
     const ids = [...this.lenders.values()].filter((l) => slugs.includes(l.slug)).map((l) => l.id);
-    return ids.flatMap((id) => (this.products.get(id) ?? []).filter((p) => p.expiresAt > now));
+    return cleanCached(ids.flatMap((id) => (this.products.get(id) ?? []).filter((p) => p.expiresAt > now)));
   }
   async replaceProducts(lenderId: string, records: ProductRecord[], now: Date, ttlMs: number) {
     const lender = this.lenders.get(lenderId)!;
@@ -107,7 +108,7 @@ export class PrismaRepo implements ResearchRepo {
       const parsed = ProductRecordSchema.safeParse(p.data);
       if (parsed.success) out.push({ id: p.id, lender: row, record: parsed.data, scrapedAt: p.scrapedAt, expiresAt: p.expiresAt });
     }
-    return out;
+    return cleanCached(out);
   }
   async freshProductsForSlugs(slugs: string[], now: Date): Promise<StoredProduct[]> {
     if (!slugs.length) return [];
@@ -117,7 +118,7 @@ export class PrismaRepo implements ResearchRepo {
       const parsed = ProductRecordSchema.safeParse(p.data);
       if (parsed.success) out.push({ id: p.id, lender: toLenderRow(p.lender), record: parsed.data, scrapedAt: p.scrapedAt, expiresAt: p.expiresAt });
     }
-    return out;
+    return cleanCached(out);
   }
   async replaceProducts(lenderId: string, records: ProductRecord[], now: Date, ttlMs: number) {
     const expiresAt = new Date(now.getTime() + ttlMs);

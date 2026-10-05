@@ -92,7 +92,10 @@ const PERSONA_CHECKS: Record<string, (o: { rank: RankResult; report: Report; pro
     if (!rank.top.length) out.push("no lender at all was offered to the non-US owner");
     return out;
   },
-  "re-investor": ({ rank }) => rank.top.filter((t) => t.product.record.eligiblePurposes.length && !t.product.record.eligiblePurposes.includes("real_estate")).map((t) => `${t.product.lender.name} does not permit real-estate purchases`),
+  "re-investor": ({ rank }) => [
+    ...rank.top.filter((t) => t.product.record.eligiblePurposes.length && !t.product.record.eligiblePurposes.includes("real_estate")).map((t) => `${t.product.lender.name} does not permit real-estate purchases`),
+    ...rank.top.filter((t) => /\b(?:auto|vehicles?|trucks?|fleet)\b/i.test(t.product.record.productName)).map((t) => `${t.product.lender.name} — ${t.product.record.productName} is vehicle financing, not for buying real estate`),
+  ],
   "contractor-equipment": ({ rank }) => rank.top.filter((t) => t.product.record.eligiblePurposes.length && !t.product.record.eligiblePurposes.includes("equipment")).map((t) => `${t.product.lender.name} does not permit equipment purchases`),
   "restaurant-700": ({ rank }) => (rank.top.length ? [] : ["a 3-year, 700-FICO restaurant should match at least one product"]),
 };

@@ -28,6 +28,10 @@ export function sameSite(url: string, domain: string): boolean {
 const DENY_AUTH = /(^|[/._-])(log-?in|log-?on|sign-?in|sign-?on|sso|oauth2?|auth(?:enticate)?|session|my-?account|myaccount|online-?banking|portal|dashboard|cart|checkout|password|forgot|reset|logout|signup|sign-up|register)([/._-]|$)/i;
 // Content that cannot describe a financing product.
 const DENY_CONTENT = /(^|[/._-])(blog|news|newsroom|press|careers?|jobs|about-us|investors?|investor-relations|privacy|terms|legal|cookies?|sitemap|security-center|fraud|contact|locations?|branch(?:es)?|atm|calculators?-?tools?|podcast|events?|webinars?|reviews?|testimonials?|espanol|es|resources?|learn|learning|insights?|guides?|articles?|education|how-to|what-is|compare|comparison|glossary|vs)([/._-]|$)/i;
+// This tool covers US lenders only: another country's site (Funding Circle UK, a lender's /ca/ pages…) describes
+// products a US borrower cannot get, in another currency.
+const NON_US_PATH = /^\/(?:uk|gb|ca|au|nz|ie|de|fr|it|nl|eu|(?:en|fr|de|es|it|nl)-(?:gb|ca|au|nz|ie|de|fr|it|nl|mx|es))(?:\/|$)/i;
+const NON_US_HOST = /\.(?:uk|ca|au|nz|ie|de|fr|it|nl)$|\.co\.(?:uk|nz|za|in)$|\.com\.(?:au|br|mx|sg|hk)$/i;
 const DENY_FILE = /\.(?:pdf|jpe?g|png|gif|svg|webp|zip|xlsx?|docx?|mp4|mp3|css|js|xml|json)$/i;
 
 export function isDeniedUrl(url: string): boolean {
@@ -39,6 +43,7 @@ export function isDeniedUrl(url: string): boolean {
   }
   if (u.protocol !== "https:") return true;
   if (DENY_FILE.test(u.pathname)) return true;
+  if (NON_US_PATH.test(u.pathname) || NON_US_HOST.test(u.hostname)) return true;
   const hostAndPath = `${u.hostname.split(".")[0]}${u.pathname}`;
   return DENY_AUTH.test(u.pathname) || DENY_AUTH.test(u.hostname.split(".")[0] + "/") || DENY_CONTENT.test(u.pathname) || /^(login|secure|online|my|ebank|auth)\b/.test(hostAndPath.toLowerCase());
 }

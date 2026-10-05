@@ -1,5 +1,7 @@
 import { US_STATES } from "@/lib/profile/geo";
 import { ProductRecordSchema, type ExtractedProduct, type ProductRecord } from "./productSchema";
+import { isDeniedUrl } from "./urls";
+import type { StoredProduct } from "@/lib/types";
 
 /**
  * Grounding check. A model (Firecrawl's extractor) can hallucinate numbers, so a value is kept ONLY
@@ -53,6 +55,23 @@ export function moneyAppears(text: string, n: number): boolean {
 export function percentAppears(text: string, n: number): boolean {
   const forms = [...fmt(n), n.toFixed(0), n.toFixed(1), n.toFixed(2)];
   return forms.some((f) => new RegExp(`(?<![\\d.])${f.replace(".", "\\.")}0*\\s?(?:%|percent|pct)`, "i").test(text));
+}
+
+/**
+ * An APR must be an annual rate. "Monthly loan fees range from 0.55% to 1.55%" contains the number but describes a fee,
+ * so the value is only accepted if SOME occurrence of it is not clearly a periodic fee (annual/interest wording wins).
+ */
+export function aprAppears(text: string, n: number): boolean {
+  const forms = [...fmt(n), n.toFixed(0), n.toFixed(1), n.toFixed(2)];
+  const re = new RegExp(`(?<![\\d.])(?:${[...new Set(forms)].map((f) => f.replace(".", "\\.")).join("|")})0*\\s?(?:%|percent|pct)`, "gi");
+  for (const m of text.matchAll(re)) {
+    const i = m.index ?? 0;
+    const ctx = text.slice(Math.max(0, i - 120), i + m[0].length + 120);
+    const annual = /\bapr\b|annual percentage|interest|annuali[sz]ed|per year|a year|annually/.test(ctx);
+    const periodicFee = /\b(?:monthly|weekly|daily)\b[^.]{0,60}\bfees?\b|\bfees?\b[^.]{0,60}\b(?:per|a|each|every) (?:month|week|day)\b|\bper month\b|\beach month\b/.test(ctx);
+    if (annual || !periodicFee) return true;
+  }
+  return false;
 }
 
 /** Months may be written as months, or years (1 year = 12 months), or weeks for very short terms. */
@@ -115,8 +134,8 @@ const NUM_RULES: Array<[keyof ExtractedProduct, (t: string, v: number) => boolea
   ["termMinMonths", monthsAppear],
   ["termMaxMonths", monthsAppear],
   ["minTimeInBusinessMonths", monthsAppear],
-  ["aprMin", percentAppears],
-  ["aprMax", percentAppears],
+  ["aprMin", aprAppears],
+  ["aprMax", aprAppears],
   ["originationFeePctMin", percentAppears],
   ["originationFeePctMax", percentAppears],
   ["fundingDaysMin", daysAppear],
@@ -223,6 +242,48 @@ export function verifyProduct(raw: ExtractedProduct, pageMarkdown: string): { pr
   return { product, unverified: dropped };
 }
 
+const VEHICLE_ONLY = /\b(?:auto|vehicles?|cars?|vans?|trucks?|fleet)\b/i;
+const IDENTIFIER_NAME = /^[a-z0-9]+(?:_[a-z0-9]+)+$/i; // "business_credit_card": a field label, not a product name
+
+/**
+ * Judgement calls applied to every record (fresh or cached):
+ *  - an APR of exactly 0% is an introductory/promotional offer, not the product's rate;
+ *  - a minimum amount or term of 0 means "not stated", not "zero";
+ *  - a product with no listed uses whose name/evidence says it finances vehicles is vehicle-only, so it is treated as an
+ *    equipment-type use rather than being offered for anything (a bank auto loan cannot fund a second restaurant).
+ */
+export function sanitizeRecord(r: ProductRecord): ProductRecord {
+  const out: ProductRecord = { ...r, unverifiedFields: [...r.unverifiedFields] };
+  if (out.aprMin === 0) {
+    out.aprMin = null;
+    if (!out.unverifiedFields.includes("aprMin")) out.unverifiedFields.push("aprMin");
+  }
+  if (out.minAmount === 0) out.minAmount = null;
+  if (out.termMinMonths === 0) out.termMinMonths = null;
+  if (!out.eligiblePurposes.length && VEHICLE_ONLY.test(`${out.productName} ${out.evidenceQuote ?? ""}`)) out.eligiblePurposes = ["equipment"];
+  return out;
+}
+
+/** Can a stored record still be shown? Rules tighten over time, so cached rows are re-judged on every read. */
+export function isUsableRecord(r: ProductRecord): boolean {
+  return !isDeniedUrl(r.sourceUrl) && !IDENTIFIER_NAME.test(r.productName);
+}
+
+/** Re-judge, sanitise and de-duplicate products read back from the cache (identical facts on one page = one product). */
+export function cleanCached(products: StoredProduct[]): StoredProduct[] {
+  const seen = new Set<string>();
+  const out: StoredProduct[] = [];
+  for (const p of products) {
+    if (!isUsableRecord(p.record)) continue;
+    const record = sanitizeRecord(p.record);
+    const key = [p.lender.slug, record.sourceUrl, record.productType, record.aprMin, record.aprMax, record.minAmount, record.maxAmount, record.termMinMonths, record.termMaxMonths, record.minFico, record.minTimeInBusinessMonths].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ...p, record });
+  }
+  return out;
+}
+
 /** Free text from a scraped page is untrusted: strip links, markup, control chars; bound its length. */
 export function cleanLabel(s: string | null | undefined, max = 100): string | null {
   if (!s) return null;
@@ -251,7 +312,7 @@ export function toProductRecords(
   for (const raw of products) {
     const name = cleanLabel(raw.productName);
     if (!name || !raw.productType) continue;
-    if (/^[a-z0-9]+(?:_[a-z0-9]+)+$/i.test(name)) continue; // "business_credit_card": an identifier, not a product name
+    if (IDENTIFIER_NAME.test(name)) continue;
     if (looksLikeInjection(`${raw.productName ?? ""} ${raw.evidenceQuote ?? ""}`)) continue;
     const { product, unverified } = verifyProduct({ ...raw, productName: name }, pageMarkdown);
     // A product with no verified quantitative or eligibility fact is not worth ranking.
@@ -270,7 +331,7 @@ export function toProductRecords(
       scrapedAt: ctx.scrapedAt.toISOString(),
       unverifiedFields: unverified,
     });
-    if (rec.success) out.push(rec.data);
+    if (rec.success && isUsableRecord(rec.data)) out.push(sanitizeRecord(rec.data));
   }
   return out;
 }

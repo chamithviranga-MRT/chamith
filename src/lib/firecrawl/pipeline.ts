@@ -69,6 +69,8 @@ export interface PipelineResult {
 }
 
 const ROBOTS_TTL_MS = 24 * 60 * 60 * 1000;
+/** A lender that was read successfully but yielded nothing (or forbids reading) is not re-scanned for this long: each retry costs credits. */
+const NEGATIVE_TTL_MS = 24 * 60 * 60 * 1000;
 const AGE_DAYS = (from: Date | null, now: Date) => (from ? Math.max(0, Math.floor((now.getTime() - from.getTime()) / 86_400_000)) : null);
 
 export async function runPipeline(o: PipelineOptions): Promise<PipelineResult> {
@@ -227,8 +229,16 @@ export async function runPipeline(o: PipelineOptions): Promise<PipelineResult> {
       return finish(l, { status: "cached", products: fresh.length, sourcesRead: 0, dataAgeDays: AGE_DAYS(fresh[0].scrapedAt, now()) });
     }
 
-    const unavailable = async (reason: string, status: "unavailable" | "blocked" = "unavailable") => {
-      await o.repo.updateLender(l.id, { status: status === "blocked" ? "blocked_robots" : "data_unavailable", statusReason: reason });
+    if (!fresh.length && !force.has(l.slug) && (l.status === "data_unavailable" || l.status === "blocked_robots") && l.lastScrapedAt && now().getTime() - new Date(l.lastScrapedAt).getTime() < NEGATIVE_TTL_MS) {
+      const status = l.status === "blocked_robots" ? "blocked" : "unavailable";
+      const reason = `${l.statusReason ?? "No usable data."} (not retried for 24 h)`;
+      emit({ type: "lender", slug: l.slug, name: l.name, status, reason });
+      return finish(l, { status, products: 0, reason, sourcesRead: 0, dataAgeDays: null });
+    }
+
+    // `remember`: the lender was actually read and had nothing usable, so skip it next time. Transient failures are not remembered.
+    const unavailable = async (reason: string, status: "unavailable" | "blocked" = "unavailable", remember = false) => {
+      await o.repo.updateLender(l.id, { status: status === "blocked" ? "blocked_robots" : "data_unavailable", statusReason: reason, ...(remember ? { lastScrapedAt: now() } : {}) });
       emit({ type: "lender", slug: l.slug, name: l.name, status, reason });
       finish(l, { status, products: 0, reason, sourcesRead: pageReads, dataAgeDays: AGE_DAYS(stored[0]?.scrapedAt ?? null, now()) });
     };
@@ -265,7 +275,7 @@ export async function runPipeline(o: PipelineOptions): Promise<PipelineResult> {
 
     const allowed = unique.filter((u) => !rules || isAllowed(rules, u.url));
     for (const u of unique.filter((x) => !allowed.includes(x))) await o.repo.recordPage(u.url, l.id, "blocked_robots", 0);
-    if (!allowed.length) return unavailable(`robots.txt on ${domain} disallows reading its product pages, so none were read.`, "blocked");
+    if (!allowed.length) return unavailable(`robots.txt on ${domain} disallows reading its product pages, so none were read.`, "blocked", true);
 
     const records: ProductRecord[] = [];
     const errors: string[] = [];
@@ -308,7 +318,7 @@ export async function runPipeline(o: PipelineOptions): Promise<PipelineResult> {
 
     if (!products.length) {
       const reason = errors.length === allowed.length ? `All ${allowed.length} page(s) failed to load (${errors[0]}).` : `No usable product data found on ${allowed.length} page(s) read.`;
-      return unavailable(reason);
+      return unavailable(reason, "unavailable", errors.length < allowed.length);
     }
     await o.repo.replaceProducts(l.id, products, scrapedAt, ttl);
     await o.repo.updateLender(l.id, { status: "ok", statusReason: null, lastScrapedAt: scrapedAt });

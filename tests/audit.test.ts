@@ -54,6 +54,16 @@ describe("claim audit", () => {
     expect(auditReport(c2.report, { products: c2.products, profile: c2.pr, checkDomains: true }).some((x) => x.kind === "domain_mismatch")).toBe(true);
   });
 
+  it("flags a source that is an article or another country's page", async () => {
+    const { report, products, pr } = await clean();
+    const url = "https://a.example/uk/small-business-loans";
+    report.items[0].sourceUrl = url;
+    report.items[0].reasoning.citation = `Source: ${url} · data scraped Oct 4, 2026`;
+    report.items[1].sourceUrl = "https://b.example/learn/what-is-a-term-loan";
+    report.items[1].reasoning.citation = "Source: https://b.example/learn/what-is-a-term-loan · data scraped Oct 4, 2026";
+    expect(summarizeFlags(auditReport(report, { products, profile: pr })).bad_source).toBe(2);
+  });
+
   it("does not demand an 'estimate' label from a payment line that shows no dollar figure", async () => {
     const { report, products, pr } = await clean();
     report.items[0].reasoning.estimatedPayment = "No monthly payment can be calculated because the lender publishes no rate.";
