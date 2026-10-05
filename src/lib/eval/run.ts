@@ -3,6 +3,7 @@ import { createClaudeExtractor } from "@/lib/profile/claudeExtractor";
 import { processUserMessage } from "@/lib/profile/process";
 import { emptyProfile, type Profile } from "@/lib/profile/schema";
 import { rankProducts } from "@/lib/matching/rank";
+import { scoringConfig } from "@/lib/matching/config";
 import type { RankResult } from "@/lib/matching/types";
 import { generateReasoning } from "@/lib/reasoning/claude";
 import { buildReport } from "@/lib/report/build";
@@ -51,6 +52,8 @@ export function oracleViolations(p: Profile, s: StoredProduct): string[] {
   if (a !== null) {
     if (r.minAmount !== null && a < r.minAmount) v.push("amount below minimum");
     if (r.maxAmount !== null && a > r.maxAmount) v.push("amount above maximum");
+    // a card whose limit is unpublished is assumed not to reach the (editable) ceiling in config/scoring.json
+    if (r.productType === "business_card" && r.maxAmount === null && a > scoringConfig.assumptions.unpublishedCardLimitCeilingUsd) v.push("amount above the assumed card ceiling");
   }
   if (r.minFico !== null && p.ficoMax !== null && p.ficoMax < r.minFico) v.push("FICO below minimum");
   if (r.minTimeInBusinessMonths !== null && p.timeInBusinessMonths !== null && p.timeInBusinessMonths < r.minTimeInBusinessMonths) v.push("time in business below minimum");

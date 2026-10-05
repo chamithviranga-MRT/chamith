@@ -77,6 +77,17 @@ describe("evaluation personas on the synthetic catalog (offline, deterministic)"
   });
 });
 
+describe("oracle mirrors the engine's explicit assumptions", () => {
+  it("a card with no published limit is ineligible above the configured ceiling and eligible below it", () => {
+    const card = products.find((p) => p.record.productType === "business_card")!;
+    const noLimit = { ...card, record: { ...card.record, minAmount: null, maxAmount: null } };
+    const big = normalizeProfile({ ...emptyProfile(), amountNeeded: 150000 });
+    const small = normalizeProfile({ ...emptyProfile(), amountNeeded: 20000 });
+    expect(oracleViolations(big, noLimit).join(" ")).toMatch(/assumed card ceiling/);
+    expect(oracleViolations(small, noLimit)).toEqual([]);
+  });
+});
+
 describe("live-mode plumbing", () => {
   const stats = { sourcesRead: 7, sourcesFromCache: 2, lendersTotal: 3, lendersScanned: 2, lendersCached: 1, lendersUnavailable: 1, discoveredNew: 0, productsFound: products.length, concurrency: 2, startedAt: now.toISOString(), finishedAt: now.toISOString() };
   const outcomes: LoadedProducts["outcomes"] = [
