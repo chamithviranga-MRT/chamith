@@ -108,6 +108,7 @@ describe("record sanitising and cache cleaning", () => {
     const r = sanitizeRecord({ ...rec(), aprMin: 0, aprMax: 26.74, minAmount: 0, termMinMonths: 0 });
     expect(r).toMatchObject({ aprMin: null, aprMax: 26.74, minAmount: null, termMinMonths: null });
     expect(r.unverifiedFields).toContain("aprMin");
+    expect(sanitizeRecord({ ...rec(), aprMin: null, aprMax: 0 })).toMatchObject({ aprMin: null, aprMax: null });
   });
 
   it("a product with no listed uses that finances vehicles is vehicle-only, so it fails a real-estate or expansion purpose", () => {

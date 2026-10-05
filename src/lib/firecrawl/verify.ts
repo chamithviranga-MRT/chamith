@@ -254,9 +254,11 @@ const IDENTIFIER_NAME = /^[a-z0-9]+(?:_[a-z0-9]+)+$/i; // "business_credit_card"
  */
 export function sanitizeRecord(r: ProductRecord): ProductRecord {
   const out: ProductRecord = { ...r, unverifiedFields: [...r.unverifiedFields] };
-  if (out.aprMin === 0) {
-    out.aprMin = null;
-    if (!out.unverifiedFields.includes("aprMin")) out.unverifiedFields.push("aprMin");
+  for (const k of ["aprMin", "aprMax"] as const) {
+    if (out[k] === 0) {
+      out[k] = null;
+      if (!out.unverifiedFields.includes(k)) out.unverifiedFields.push(k);
+    }
   }
   if (out.minAmount === 0) out.minAmount = null;
   if (out.termMinMonths === 0) out.termMinMonths = null;
