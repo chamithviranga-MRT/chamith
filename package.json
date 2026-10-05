@@ -15,6 +15,8 @@
     "eval": "tsx scripts/eval.ts",
     "postinstall": "prisma generate",
     "eval:fixtures": "tsx scripts/eval.ts --mode=fixtures",
+    "demo:snapshot": "tsx demo/export-snapshot.ts",
+    "demo:build": "node demo/build.mjs",
     "eval:live": "tsx scripts/eval.ts --mode=live",
     "test:eval": "vitest run tests/eval.test.ts"
   },

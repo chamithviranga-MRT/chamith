@@ -43,6 +43,10 @@ Sortable comparison table: ![Comparison table](docs/screens/5-comparison-table.p
 
 Follow-up chat ("What if I only want SBA loans?") re-ranks from the cache without re-scraping: ![Follow-up](docs/screens/7-followup-sba-only.png)
 
+## Standalone demo (one HTML file)
+
+`docs/lendmatch-demo.html` is the real UI and engine in a single self-contained file (~2 MB, no server, no network): open it in a browser. It ranks a frozen snapshot of the live-scraped lender data (18 lenders, 53 products, read 2026-10-05) with the real profile extraction, hard filters, scoring, cost math, verified reasoning, follow-up re-ranking, comparison table, "How I decided", DOCX/PDF export and delete-my-data. What it cannot do: browse the web, call Claude (extraction is the offline pattern matcher, reasoning is the verified template) or refresh a lender; a banner says so and shows how old the snapshot is (older than 7 days it is flagged as illustrative). Rebuild with fresh data: run the research, then `npm run build && npm run demo:snapshot && npm run demo:build`.
+
 ## Setup
 
 Requirements: Node ≥ 20, PostgreSQL ≥ 14.

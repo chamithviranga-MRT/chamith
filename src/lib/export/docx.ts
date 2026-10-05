@@ -22,7 +22,8 @@ const cell = (text: string, o: { bold?: boolean; fill?: string; width?: number }
     borders: { top: border, bottom: border, left: border, right: border },
   });
 
-export async function renderDocx(report: Report): Promise<Buffer> {
+/** The document itself (no I/O), so a browser can pack it with Packer.toBlob and Node with Packer.toBuffer. */
+export function buildDocx(report: Report): Document {
   const children: Array<Paragraph | Table> = [];
 
   children.push(new Paragraph({ children: [run("Lend", { bold: true, size: 48, color: "4338CA" }), run("Match", { bold: true, size: 48, color: "A21CAF" })] }));
@@ -140,5 +141,9 @@ export async function renderDocx(report: Report): Promise<Buffer> {
       },
     ],
   });
-  return Packer.toBuffer(doc);
+  return doc;
+}
+
+export async function renderDocx(report: Report): Promise<Buffer> {
+  return Packer.toBuffer(buildDocx(report));
 }
