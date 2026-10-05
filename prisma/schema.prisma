@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- User-owned data (removed by "delete my data": cascades from Session) ----------
+
+model Session {
+  id         String         @id @default(cuid())
+  createdAt  DateTime       @default(now())
+  lastSeenAt DateTime       @default(now())
+  messages   Message[]
+  profile    ProfileRecord?
+  runs       ResearchRun[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String // user | assistant
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+model ProfileRecord {
+  sessionId String   @id
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  data      Json
+  confirmed Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+model ResearchRun {
+  id         String    @id @default(cuid())
+  sessionId  String
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  profile    Json // snapshot of the confirmed profile used for this run
+  status     String    @default("running") // running | done | error
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  stats      Json?
+  report     Json? // ranked report (Top 10, near misses, filters, score breakdowns)
+
+  @@index([sessionId, startedAt])
+}
+
+// ---------- Shared public lender data (scraped; contains no user data) ----------
+
+model Lender {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  name          String
+  category      String // SBA | Conventional | Alternative
+  group         String? // registry group label
+  homepage      String?
+  seedUrls      String[]
+  source        String    @default("seed") // seed | discovered
+  reliability   Int       @default(70) // editorial 0-100 prior, see config/scoring.json
+  isMarketplace Boolean   @default(false)
+  status        String    @default("unknown") // unknown | ok | data_unavailable | blocked_robots
+  statusReason  String?
+  lastScrapedAt DateTime?
+  products      Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  lenderId    String
+  lender      Lender   @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+  name        String
+  productType String
+  sourceUrl   String
+  data        Json // validated ProductRecord (see src/lib/firecrawl/productSchema.ts)
+  scrapedAt   DateTime
+  expiresAt   DateTime
+  contentHash String
+
+  @@unique([lenderId, sourceUrl, name])
+  @@index([expiresAt])
+}
+
+model PageFetch {
+  url          String   @id
+  lenderId     String?
+  status       String // ok | empty | error | blocked_robots | skipped
+  error        String?
+  productCount Int      @default(0)
+  fetchedAt    DateTime @default(now())
+
+  @@index([lenderId])
+}
+
+model RobotsCache {
+  host      String   @id
+  body      String   @db.Text
+  fetchedAt DateTime @default(now())
+}
