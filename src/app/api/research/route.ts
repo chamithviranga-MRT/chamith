@@ -8,6 +8,7 @@ import { runPipeline } from "@/lib/firecrawl/pipeline";
 import { PrismaRepo } from "@/lib/firecrawl/repo";
 import { loadRegistry } from "@/lib/firecrawl/registry";
 import { getAnthropic } from "@/lib/anthropic";
+import { DISCOVERY_ENABLED } from "@/lib/config";
 import { generateReport } from "@/lib/report/generate";
 import { missingRequired } from "@/lib/profile/normalize";
 import { loadProfile } from "@/lib/profile/store";
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
       web,
       repo: new PrismaRepo(),
       registry: loadRegistry(),
+      discovery: DISCOVERY_ENABLED,
       signal,
       onEvent: (e) => send(e.type, e),
     });

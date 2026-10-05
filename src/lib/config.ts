@@ -9,6 +9,9 @@ export const CACHE_TTL_MS = CACHE_TTL_DAYS * 24 * 60 * 60 * 1000;
 /** Cap on lenders scanned per run (registry + discovered). */
 export const MAX_LENDERS_PER_RUN = Number(process.env.LENDMATCH_MAX_LENDERS || 40);
 
+/** Profile-driven lender discovery costs search + scrape credits; set LENDMATCH_DISCOVERY=off to read only the registry lenders. */
+export const DISCOVERY_ENABLED = process.env.LENDMATCH_DISCOVERY !== "off";
+
 /** Editorial reliability prior for lenders found by discovery (unknown to us). Registry lenders carry their own in data/lenders.json. */
 export const DISCOVERED_RELIABILITY = 40;
 

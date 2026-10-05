@@ -26,6 +26,23 @@ Everything below was built and tested **without live API access**: the build env
 
 The Claude and Firecrawl code paths are exercised only against injected fakes, with request shapes checked against the installed SDK type definitions. **Run `npm run eval:live` once you have keys** (see below) before trusting any real-world output.
 
+## What it looks like
+
+Captured from the running app on 2026-10-05, using the cached live data (no Anthropic key, so offline extraction; `LENDMATCH_DISCOVERY=off`, no Firecrawl credits spent).
+
+| | |
+|---|---|
+| ![Chat and editable profile card](docs/screens/1-chat-and-profile.png) | ![Top of the results](docs/screens/2-results-top.png) |
+| Chat extracts a profile you can edit before confirming | Top matches, with the informational-only notice |
+| ![A result card](docs/screens/3-top-card.png) | ![A card with no published rate](docs/screens/4-card-no-rate-published.png) |
+| Pink Diamond card: figures, sourced reasoning, risks, estimate, source and scrape date | A lender that publishes no rate: no payment is estimated, and it says so |
+
+Sortable comparison table: ![Comparison table](docs/screens/5-comparison-table.png)
+
+"How I decided" (profile, filters applied, score breakdown, cost math): ![How I decided](docs/screens/6-how-i-decided.png)
+
+Follow-up chat ("What if I only want SBA loans?") re-ranks from the cache without re-scraping: ![Follow-up](docs/screens/7-followup-sba-only.png)
+
 ## Setup
 
 Requirements: Node ≥ 20, PostgreSQL ≥ 14.
@@ -47,6 +64,7 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/lendmatch?schema=public
 # optional
 FIRECRAWL_USE_AGENT=0             # 1 = let Firecrawl's agent find product pages when mapping finds none (costs more credits)
 LENDMATCH_MAX_LENDERS=40          # cap on lenders per run
+LENDMATCH_DISCOVERY=off           # optional: read only the registry lenders (saves Firecrawl credits)
 ```
 
 Without `ANTHROPIC_API_KEY` the app still works in a clearly-labelled **offline mode** (pattern-matching extraction, verified template reasoning). Without `FIRECRAWL_API_KEY` research returns a clear 503 message.
