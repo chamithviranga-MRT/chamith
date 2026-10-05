@@ -5,6 +5,7 @@
  *   npm run eval -- --mode=fixtures   # force the synthetic catalog (fictional lenders; NOT real data)
  *   npm run eval -- --mode=live       # real Firecrawl research (needs FIRECRAWL_API_KEY, DATABASE_URL)
  *   npm run eval -- --persona=nonus-llc --strict --out=reports/eval.md
+ *   npm run eval -- --mode=live --no-discovery   # live, registry lenders only (LENDMATCH_MAX_LENDERS=N caps the count)
  */
 import "dotenv/config";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -29,6 +30,7 @@ const has = (name: string) => process.argv.includes(`--${name}`);
 const mode = (arg("mode") ?? (process.env.FIRECRAWL_API_KEY ? "live" : "fixtures")) as "live" | "fixtures";
 const only = arg("persona");
 const strict = has("strict");
+const noDiscovery = has("no-discovery"); // live mode: read only the registry lenders (saves Firecrawl credits)
 const out = arg("out") ?? `reports/eval-${mode}.md`;
 const client = arg("reasoning") === "template" ? null : getAnthropic();
 
@@ -68,7 +70,7 @@ async function main() {
     if (!process.env.DATABASE_URL) fail("--mode=live needs DATABASE_URL (Postgres) for the 7-day cache.");
     const repo = new PrismaRepo();
     loader = async (profile) => {
-      const res = await runPipeline({ profile, web, repo, registry: loadRegistry(), onEvent: (e) => e.type === "stage" && console.error(`  [research] ${e.message}`) });
+      const res = await runPipeline({ profile, web, repo, registry: loadRegistry(), discovery: !noDiscovery, onEvent: (e) => e.type === "stage" && console.error(`  [research] ${e.message}`) });
       if (res.fatalError) fail(res.fatalError);
       return { products: res.products, outcomes: res.outcomes, stats: res.stats };
     };
