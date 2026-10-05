@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const BORROWER_TYPES = ["startup", "existing_small_business", "personal_for_business", "real_estate_investor"] as const;
-export const PURPOSES = ["working_capital", "equipment", "expansion", "debt_consolidation", "real_estate", "inventory"] as const;
+export const PURPOSES = ["working_capital", "equipment", "expansion", "debt_consolidation", "real_estate", "inventory", "vehicle"] as const;
 export const FREQUENCIES = ["daily", "weekly", "monthly", "no_preference"] as const;
 export const RESIDENCY = ["us_citizen", "permanent_resident", "visa_holder", "non_resident"] as const;
 
@@ -23,6 +23,7 @@ export const PURPOSE_LABEL: Record<Purpose, string> = {
   debt_consolidation: "Debt consolidation",
   real_estate: "Real estate",
   inventory: "Inventory",
+  vehicle: "Vehicle",
 };
 
 /**

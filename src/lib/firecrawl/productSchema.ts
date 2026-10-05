@@ -55,7 +55,7 @@ export const ExtractedProductSchema = z.object({
   bankruptcyLookbackYears: z.number().nullable(),
   taxLiensDisqualify: z.boolean().nullable(),
   recentDefaultsDisqualify: z.boolean().nullable(),
-  eligiblePurposes: z.array(z.enum(["working_capital", "equipment", "expansion", "debt_consolidation", "real_estate", "inventory"])),
+  eligiblePurposes: z.array(z.enum(["working_capital", "equipment", "expansion", "debt_consolidation", "real_estate", "inventory", "vehicle"])),
   /** Short verbatim quote from the page supporting the headline amount/rate/eligibility. */
   evidenceQuote: z.string().nullable(),
 });

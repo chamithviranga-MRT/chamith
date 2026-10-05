@@ -111,9 +111,9 @@ describe("record sanitising and cache cleaning", () => {
     expect(sanitizeRecord({ ...rec(), aprMin: null, aprMax: 0 })).toMatchObject({ aprMin: null, aprMax: null });
   });
 
-  it("a product with no listed uses that finances vehicles is vehicle-only, so it fails a real-estate or expansion purpose", () => {
+  it("a product with no listed uses that finances vehicles is vehicle-only", () => {
     const auto = sanitizeRecord({ ...rec(), productName: "Business Advantage Auto Loan", evidenceQuote: "Buy cars, vans or light trucks." });
-    expect(auto.eligiblePurposes).toEqual(["equipment"]);
+    expect(auto.eligiblePurposes).toEqual(["vehicle"]);
     expect(sanitizeRecord({ ...rec(), productName: "Acme Term Loan" }).eligiblePurposes).toEqual([]);
     expect(sanitizeRecord({ ...rec(), productName: "Fleet Loan", eligiblePurposes: ["working_capital"] }).eligiblePurposes).toEqual(["working_capital"]);
   });

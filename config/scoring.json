@@ -149,6 +149,10 @@
     "unverifiedFieldPenalty": 5,
     "unverifiedMaxPenalty": 30
   },
+  "assumptions": {
+    "_note": "Editable judgement calls, not lender data. A business card's limit is set at approval and is usually unpublished; above this amount an unpublished-limit card is not offered as a match for a financing request.",
+    "unpublishedCardLimitCeilingUsd": 50000
+  },
   "rank": {
     "topN": 10,
     "nearMissMax": 6,

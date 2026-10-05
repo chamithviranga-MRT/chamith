@@ -33,6 +33,7 @@ export const ScoringConfigSchema = z.object({
     lenderWeight: z.number(), dataWeight: z.number(), completenessWeight: z.number(), freshnessWeight: z.number(),
     freshnessFullDays: z.number(), freshnessAtTtlScore: z.number(), unverifiedFieldPenalty: z.number(), unverifiedMaxPenalty: z.number(),
   }),
+  assumptions: z.object({ unpublishedCardLimitCeilingUsd: z.number().min(0) }).passthrough(),
   rank: z.object({ topN: z.number().int().min(1), nearMissMax: z.number().int().min(0), nearMissMaxFailedGates: z.number().int().min(1), maxPerLender: z.number().int().min(1) }),
 });
 export type ScoringConfig = z.infer<typeof ScoringConfigSchema>;

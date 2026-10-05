@@ -249,8 +249,8 @@ const IDENTIFIER_NAME = /^[a-z0-9]+(?:_[a-z0-9]+)+$/i; // "business_credit_card"
  * Judgement calls applied to every record (fresh or cached):
  *  - an APR of exactly 0% is an introductory/promotional offer, not the product's rate;
  *  - a minimum amount or term of 0 means "not stated", not "zero";
- *  - a product with no listed uses whose name/evidence says it finances vehicles is vehicle-only, so it is treated as an
- *    equipment-type use rather than being offered for anything (a bank auto loan cannot fund a second restaurant).
+ *  - a product with no listed uses whose name/evidence says it finances vehicles is vehicle-only, so it is offered for
+ *    vehicle purchases only (a bank auto loan can neither fund a second restaurant nor buy an excavator).
  */
 export function sanitizeRecord(r: ProductRecord): ProductRecord {
   const out: ProductRecord = { ...r, unverifiedFields: [...r.unverifiedFields] };
@@ -262,7 +262,7 @@ export function sanitizeRecord(r: ProductRecord): ProductRecord {
   }
   if (out.minAmount === 0) out.minAmount = null;
   if (out.termMinMonths === 0) out.termMinMonths = null;
-  if (!out.eligiblePurposes.length && VEHICLE_ONLY.test(`${out.productName} ${out.evidenceQuote ?? ""}`)) out.eligiblePurposes = ["equipment"];
+  if (!out.eligiblePurposes.length && VEHICLE_ONLY.test(`${out.productName} ${out.evidenceQuote ?? ""}`)) out.eligiblePurposes = ["vehicle"];
   return out;
 }
 

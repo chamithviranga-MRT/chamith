@@ -38,6 +38,9 @@ export function buildDiscoveryQueries(p: Profile, max = 6): string[] {
       q.push(`working capital loan small business ${credit}`.trim());
       q.push(`business line of credit ${credit}`.trim());
       break;
+    case "vehicle":
+      q.push(`commercial vehicle loan small business ${credit}`.trim());
+      break;
     case "inventory":
       q.push(`inventory financing small business ${credit}`.trim());
       break;

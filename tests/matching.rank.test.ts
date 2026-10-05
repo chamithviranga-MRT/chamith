@@ -13,15 +13,25 @@ const run = (p: ReturnType<typeof profile>, products: ReturnType<typeof product>
 describe("hard gates", () => {
   const eg = (pOver = {}, prod = {}) => evaluateGates(profile(pOver), product(prod).record, product().lender);
 
-  it("a card with no published credit limit is borderline, not unknown or pass", () => {
-    const g = gate(eg({ amountNeeded: 150000 }, { productType: "business_card", minAmount: null, maxAmount: null }), "amount");
-    expect(g.status).toBe("borderline");
-    expect(g.detail).toMatch(/not published/);
-    expect(g.fix).toMatch(/issuer/);
+  it("a card with no published limit is borderline for a small request and fails above the editable ceiling, saying it is an assumption", () => {
+    const small = gate(eg({ amountNeeded: 20000 }, { productType: "business_card", minAmount: null, maxAmount: null }), "amount");
+    expect(small.status).toBe("borderline");
+    expect(small.detail).toMatch(/not published/);
+    expect(small.fix).toMatch(/issuer/);
+    const big = gate(eg({ amountNeeded: 150000 }, { productType: "business_card", minAmount: null, maxAmount: null }), "amount");
+    expect(big.status).toBe("fail");
+    expect(big.detail).toMatch(/editable assumption, not lender data/);
+    expect(big.detail).toMatch(/\$50,000/);
     // a card that does publish a ceiling is still judged against it
     expect(gate(eg({ amountNeeded: 150000 }, { productType: "business_card", minAmount: null, maxAmount: 50000 }), "amount").status).toBe("fail");
     // other products with no published range stay 'unknown'
     expect(gate(eg({ amountNeeded: 150000 }, { productType: "term_loan", minAmount: null, maxAmount: null }), "amount").status).toBe("unknown");
+  });
+
+  it("a vehicle-only product fails for equipment, expansion and real estate and passes only for a vehicle purchase", () => {
+    const auto = { productName: "Business Advantage Auto Loan", eligiblePurposes: ["vehicle"] as never };
+    for (const purpose of ["equipment", "expansion", "real_estate"] as const) expect(gate(eg({ purpose }, auto), "purpose").status).toBe("fail");
+    expect(gate(eg({ purpose: "vehicle" }, auto), "purpose").status).toBe("pass");
   });
 
   it("amount outside range fails with a concrete fix", () => {
