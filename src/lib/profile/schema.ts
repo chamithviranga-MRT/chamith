@@ -3,10 +3,12 @@ import { z } from "zod";
 export const BORROWER_TYPES = ["startup", "existing_small_business", "personal_for_business", "real_estate_investor"] as const;
 export const PURPOSES = ["working_capital", "equipment", "expansion", "debt_consolidation", "real_estate", "inventory"] as const;
 export const FREQUENCIES = ["daily", "weekly", "monthly", "no_preference"] as const;
+export const RESIDENCY = ["us_citizen", "permanent_resident", "visa_holder", "non_resident"] as const;
 
 export type BorrowerType = (typeof BORROWER_TYPES)[number];
 export type Purpose = (typeof PURPOSES)[number];
 export type Frequency = (typeof FREQUENCIES)[number];
+export type Residency = (typeof RESIDENCY)[number];
 
 export const BORROWER_TYPE_LABEL: Record<BorrowerType, string> = {
   startup: "Startup",
@@ -33,6 +35,7 @@ export const ProfileSchema = z.object({
 
   ownerCountry: z.string().nullable(), // ISO 3166-1 alpha-2, e.g. "US"
   ownerState: z.string().nullable(), // US state / DC code, e.g. "TX"
+  ownerResidency: z.enum(RESIDENCY).nullable(), // citizenship / residency status of the owner
   businessCountry: z.string().nullable(),
   businessState: z.string().nullable(),
 
@@ -77,6 +80,7 @@ export function emptyProfile(): Profile {
     borrowerType: null,
     ownerCountry: null,
     ownerState: null,
+    ownerResidency: null,
     businessCountry: null,
     businessState: null,
     industry: null,

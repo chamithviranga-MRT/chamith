@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Disclaimer } from "./Disclaimer";
+import { ProfileCard } from "./ProfileCard";
+import { emptyProfile, type Profile } from "@/lib/profile/schema";
+import { missingRequired, type MissingField } from "@/lib/profile/normalize";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -22,6 +25,9 @@ export function Chat() {
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [missing, setMissing] = useState<MissingField[]>([]);
+  const [confirmed, setConfirmed] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,6 +38,11 @@ export function Chat() {
         const data = await res.json();
         if (cancelled) return;
         if (Array.isArray(data.messages) && data.messages.length) setMessages(data.messages);
+        if (data.profile?.data) {
+          setProfile(data.profile.data as Profile);
+          setMissing(missingRequired(data.profile.data as Profile));
+          setConfirmed(Boolean(data.profile.confirmed));
+        }
         if (!data.capabilities?.anthropic) {
           setNotice("ANTHROPIC_API_KEY is not configured — running in offline extraction mode with reduced accuracy.");
         }
@@ -54,6 +65,9 @@ export function Chat() {
     if (!window.confirm("Delete this chat, your profile and all research reports from our database? This cannot be undone.")) return;
     await fetch("/api/session", { method: "DELETE" });
     setMessages([WELCOME]);
+    setProfile(null);
+    setMissing([]);
+    setConfirmed(false);
     setNotice("Your data has been deleted. A new anonymous session will start when you next send a message.");
   }, []);
 
@@ -71,12 +85,31 @@ export function Chat() {
       });
       const data = await res.json();
       setMessages((m) => [...m, { role: "assistant", content: data.reply ?? data.error ?? "Something went wrong." }]);
+      if (data.profile) {
+        setProfile(data.profile as Profile);
+        setMissing((data.missing ?? []) as MissingField[]);
+        setConfirmed(false);
+      }
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "Network error — please try again." }]);
     } finally {
       setBusy(false);
     }
   }, [input, busy]);
+
+  const saveProfile = useCallback(async (edits: Partial<Profile>, confirm: boolean): Promise<string[] | null> => {
+    const res = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ edits, confirm }),
+    });
+    const data = await res.json();
+    if (!res.ok) return (data.issues as string[] | undefined) ?? (data.missing ? ["Required fields are still missing."] : [data.error ?? "Could not save"]);
+    setProfile(data.profile as Profile);
+    setMissing(data.missing as MissingField[]);
+    setConfirmed(Boolean(data.confirmed));
+    return null;
+  }, []);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-4 px-4 py-6">
@@ -153,6 +186,21 @@ export function Chat() {
           </button>
         </form>
       </section>
+
+      {profile && (
+        <ProfileCard
+          profile={profile ?? emptyProfile()}
+          missing={missing}
+          disabled={busy}
+          onSave={(e) => saveProfile(e, false)}
+          onConfirm={(e) => saveProfile(e, true)}
+        />
+      )}
+      {confirmed && (
+        <p role="status" className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100">
+          Profile confirmed.
+        </p>
+      )}
     </main>
   );
 }
