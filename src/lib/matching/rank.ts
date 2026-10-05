@@ -17,13 +17,19 @@ const WORTH_CONFIRMING: GateId[] = ["fico", "timeInBusiness", "revenue", "reside
 export function buildRisks(gates: Gate[], cost: CostEstimate, stored: StoredProduct, ageDays: number): string[] {
   const p = stored.record;
   const risks: string[] = [];
+  const covered = new Set<GateId>();
   for (const g of gates) {
-    if (g.status === "borderline") risks.push(g.fix ? `${g.detail} ${g.fix}` : g.detail);
-    else if (g.status === "unknown" && WORTH_CONFIRMING.includes(g.id)) risks.push(`Not published: ${g.label} — confirm with the lender. (${g.detail})`);
+    if (g.status === "borderline") {
+      // most details already end in "— confirm …"; only add the fix when it says something new
+      risks.push(g.fix && !/confirm/i.test(g.detail) ? `${g.detail} ${g.fix}` : g.detail);
+      covered.add(g.id);
+    } else if (g.status === "unknown" && WORTH_CONFIRMING.includes(g.id)) risks.push(`Not published: ${g.label} — confirm with the lender. (${g.detail})`);
   }
-  if (p.personalGuarantee === "required") risks.push("Requires a personal guarantee: your personal assets are at risk if the business cannot repay.");
-  if (p.uccLien === true) risks.push("Files a UCC lien on business assets.");
-  if (p.collateralRequired === "always") risks.push("Requires collateral.");
+  // burdens: state them once (a borderline gate for the same item already did)
+  if (p.personalGuarantee === "required" && !covered.has("personalGuarantee")) risks.push("Requires a personal guarantee: your personal assets are at risk if the business cannot repay.");
+  if (p.uccLien === true && !covered.has("uccLien")) risks.push("Files a UCC lien on business assets.");
+  if (p.collateralRequired === "always" && !covered.has("collateral")) risks.push("Requires collateral.");
+  if (p.aprMin !== null && p.aprMax !== null && p.aprMin > 0 && p.aprMax / p.aprMin >= 3) risks.push(`The published APR range is very wide (${p.aprMin}%–${p.aprMax}%); your actual rate could be anywhere in it.`);
   if (cost.rateBoundOnly === "min") risks.push(`Only a starting rate (${cost.rateLowPct}% APR) is published; your actual rate may be higher.`);
   if (cost.basis === "unknown") risks.push("No rate is published on the pages read, so cost and payment cannot be estimated.");
   if (cost.basis === "factor") risks.push("Factor-rate pricing: the effective annual cost is usually far above a typical APR and repayment may be daily or weekly.");

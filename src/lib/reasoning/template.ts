@@ -27,8 +27,8 @@ export function citationLine(item: RankedItem): string {
 /** Deterministic reasoning from verified fields. Used when there is no model, or when model text fails verification. */
 export function templateReasoning(item: RankedItem): Reasoning {
   const p = item.product.record;
-  const article = /^[aeiou]/i.test(item.category) ? "an" : "a";
-  const lead = `${item.product.lender.name}'s ${p.productName} is a ${PRODUCT_TYPE_LABEL[p.productType].toLowerCase()} from ${article} ${item.category} lender.`;
+  const article = /^(?:[aeiou]|SBA\b)/i.test(item.category) ? "an" : "a"; // "an SBA lender", "an Alternative lender"
+  const lead = `${item.product.lender.name}'s ${p.productName} (${PRODUCT_TYPE_LABEL[p.productType]}) is offered by ${article} ${item.category} lender.`;
   const fits = item.fitPoints.slice(0, 3).map(sentence);
   const whyItFits = [lead, ...(fits.length ? fits : ["The published details do not conflict with anything you told us, but several requirements are not published."])].join(" ");
 

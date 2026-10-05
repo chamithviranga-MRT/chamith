@@ -49,8 +49,8 @@ function tibGate({ profile, p }: Ctx, cfg: ScoringConfig): Gate {
   if (m === null) return g("timeInBusiness", "Time in business", "unknown", "Lender does not publish a minimum time in business.");
   if (t === null) return g("timeInBusiness", "Time in business", "unknown", `Requires ${m} months in business; yours was not provided.`);
   if (t < m) return g("timeInBusiness", "Time in business", "fail", `Requires ${m} months in business; you have ${t}.`, { fix: `Wait until the business has operated ${m} months (currently ${t}), or choose a product for newer businesses.` });
-  const ratio = m === 0 ? 1 : t / m;
-  return g("timeInBusiness", "Time in business", "pass", `Requires ${m} months; you have ${t}.`, { margin: clamp((ratio - 1) / (cfg.eligibility.tibMarginMultiple - 1), 0, 1) });
+  if (m === 0) return g("timeInBusiness", "Time in business", "pass", "No minimum time in business.", { margin: 1 });
+  return g("timeInBusiness", "Time in business", "pass", `Requires ${m} months; you have ${t}.`, { margin: clamp((t / m - 1) / (cfg.eligibility.tibMarginMultiple - 1), 0, 1) });
 }
 
 function revenueGate({ profile, p }: Ctx, cfg: ScoringConfig): Gate {
@@ -93,6 +93,7 @@ function residencyGate({ profile, p }: Ctx): Gate {
     if (profile.businessCountry && profile.businessCountry !== "US") return g("residency", "US address", "fail", "Requires a US business address; your business is outside the US.", { fix: "Establish a US business presence/address (e.g. a US-registered entity with a physical US address)." });
     return g("residency", "US address", nonUsOwner ? "borderline" : "pass", nonUsOwner ? "Requires a US address. Your US business address should satisfy this, but the owner lives outside the US — confirm before applying." : "Requires a US address; your business is in the US.", nonUsOwner ? { fix: "Confirm with the lender that a US business address is enough when the owner lives abroad." } : {});
   }
+  if (res === null && rule === "us_resident" && profile.ownerCountry === "US") return g("residency", "Residency", "pass", "Requires US residency; you live in the US.");
   if (res === null) return g("residency", "Citizenship / residency", nonUsOwner ? "fail" : "borderline", `Requires ${ruleLabel(rule)}; your status was not provided.`, { fix: `Confirm you meet: ${ruleLabel(rule)}.` });
   const ok =
     rule === "us_citizen" ? res === "us_citizen"

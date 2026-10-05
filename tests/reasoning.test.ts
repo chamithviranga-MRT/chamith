@@ -9,8 +9,8 @@ import { NOW, product, profile } from "./helpers";
 import { buildReport } from "@/lib/report/build";
 
 const pr = profile();
-const ranked = (products = [product({ productName: "Term Loan", minFico: 640, collateralRequired: "none" }, { slug: "a", name: "A Bank" }), product({ productName: "Flex LOC", productType: "line_of_credit", personalGuarantee: "required", aprMin: 14, aprMax: 18 }, { slug: "b", name: "B Capital" })]) =>
-  rankProducts({ profile: pr, products, now: NOW });
+const ranked = (products: ReturnType<typeof product>[] = [product({ productName: "Term Loan", minFico: 640, collateralRequired: "none" }, { slug: "a", name: "A Bank" }), product({ productName: "Flex LOC", productType: "line_of_credit", personalGuarantee: "required", aprMin: 14, aprMax: 18 }, { slug: "b", name: "B Capital" })], prof = pr) =>
+  rankProducts({ profile: prof, products, now: NOW });
 
 function toolMsg(items: unknown[]): Anthropic.Message {
   return { id: "m", type: "message", role: "assistant", model: "x", stop_reason: "tool_use", stop_sequence: null, content: [{ type: "tool_use", id: "t", name: REASONING_TOOL, input: { items } }], usage: { input_tokens: 1, output_tokens: 1 } } as unknown as Anthropic.Message;
@@ -73,16 +73,42 @@ describe("template reasoning (offline / fallback)", () => {
 describe("template 'what could block approval' prioritisation", () => {
   it("leads with real burdens and confirmations; 'Not published' notes come last", () => {
     const item = ranked([product({ productName: "Guarantee Loan", personalGuarantee: "required", uccLien: true, minFico: null, minTimeInBusinessMonths: null }, { slug: "g", name: "G Bank" })]).top[0];
-    expect(item.risks.findIndex((r) => r.startsWith("Not published"))).toBeLessThan(item.risks.findIndex((r) => r.startsWith("Requires a personal guarantee"))); // raw order has the notes first
+    const rawNotPublished = item.risks.findIndex((r) => r.startsWith("Not published"));
+    const rawGuarantee = item.risks.findIndex((r) => /personal guarantee/i.test(r));
+    expect(rawGuarantee).toBeGreaterThanOrEqual(0);
+    expect(rawNotPublished).toBeLessThan(rawGuarantee); // raw gate order puts the "not published" notes first
+    // the guarantee is stated exactly once (the borderline gate covers it; no duplicate burden line)
+    expect(item.risks.filter((r) => /personal guarantee/i.test(r))).toHaveLength(1);
     const first = templateReasoning(item).couldBlock;
     expect(first.indexOf("personal guarantee")).toBeGreaterThanOrEqual(0);
     expect(first.indexOf("personal guarantee")).toBeLessThan(first.indexOf("Not published") === -1 ? Infinity : first.indexOf("Not published"));
   });
+  it("never repeats the same point in one explanation", () => {
+    const item = ranked([product({ productName: "Burdens", personalGuarantee: "required", uccLien: true, collateralRequired: "always" }, { slug: "d", name: "D Bank" })]).top[0];
+    const text = templateReasoning(item).couldBlock;
+    expect((text.match(/personal guarantee/gi) ?? []).length).toBeLessThanOrEqual(1);
+    expect((text.match(/UCC lien/gi) ?? []).length).toBeLessThanOrEqual(1);
+  });
+  it("flags very wide published APR ranges", () => {
+    const item = ranked([product({ productName: "Wide", aprMin: 6, aprMax: 99 }, { slug: "w", name: "W Marketplace" })]).top[0];
+    expect(item.risks.join(" ")).toMatch(/very wide \(6%–99%\)/);
+    const tight = ranked([product({ productName: "Tight", aprMin: 9, aprMax: 14 }, { slug: "t", name: "T Bank" })]).top[0];
+    expect(tight.risks.join(" ")).not.toMatch(/very wide/);
+  });
+  it("a zero minimum time in business reads naturally, and a US-based owner is not asked to confirm residency", () => {
+    const item = ranked([product({ productName: "Startup Friendly", minTimeInBusinessMonths: 0, residencyRule: "us_resident" }, { slug: "s", name: "S Lender" })], profile({ timeInBusinessMonths: 0 })).top[0];
+    expect(item.fitPoints.join(" ")).toMatch(/No minimum time in business/);
+    expect(item.fitPoints.join(" ")).not.toMatch(/Requires 0 months/);
+    expect(item.gates.find((g) => g.id === "residency")!.status).toBe("pass");
+    expect(item.risks.join(" ")).not.toMatch(/US resident/);
+  });
   it("uses the right article ('an Alternative lender')", () => {
     const item = ranked([product({ productName: "X" }, { slug: "x", name: "X Co", category: "Alternative" })]).top[0];
-    expect(templateReasoning(item).whyItFits).toMatch(/from an Alternative lender/);
+    expect(templateReasoning(item).whyItFits).toMatch(/offered by an Alternative lender/);
     const conv = ranked([product({ productName: "Y" }, { slug: "y", name: "Y Co", category: "Conventional" })]).top[0];
-    expect(templateReasoning(conv).whyItFits).toMatch(/from a Conventional lender/);
+    expect(templateReasoning(conv).whyItFits).toMatch(/offered by a Conventional lender/);
+    const sba = ranked([product({ productName: "Z", productType: "sba_7a" }, { slug: "z", name: "Z Co", category: "SBA" })]).top[0];
+    expect(templateReasoning(sba).whyItFits).toMatch(/\(SBA 7\(a\)\) is offered by an SBA lender/);
   });
 });
 
