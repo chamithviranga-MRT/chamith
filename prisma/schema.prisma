@@ -58,9 +58,10 @@ model Lender {
   slug          String    @unique
   name          String
   category      String // SBA | Conventional | Alternative
-  group         String? // registry group label
-  homepage      String?
-  seedUrls      String[]
+  groups        String[] // registry group labels, e.g. "Personal loans usable for startups"
+  domain        String? // bare host, e.g. "liveoakbank.com"; null until located via search
+  hints         String[] // search terms used to find product pages on the domain
+  searchQuery   String? // used to locate the domain when it is null
   source        String    @default("seed") // seed | discovered
   reliability   Int       @default(70) // editorial 0-100 prior, see config/scoring.json
   isMarketplace Boolean   @default(false)

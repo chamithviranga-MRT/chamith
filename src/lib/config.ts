@@ -9,6 +9,9 @@ export const CACHE_TTL_MS = CACHE_TTL_DAYS * 24 * 60 * 60 * 1000;
 /** Cap on lenders scanned per run (registry + discovered). */
 export const MAX_LENDERS_PER_RUN = Number(process.env.LENDMATCH_MAX_LENDERS || 40);
 
+/** Editorial reliability prior for lenders found by discovery (unknown to us). Registry lenders carry their own in data/lenders.json. */
+export const DISCOVERED_RELIABILITY = 40;
+
 /** Firecrawl agent is a costly fallback; opt in via env. */
 export const USE_FIRECRAWL_AGENT = process.env.FIRECRAWL_USE_AGENT === "1";
 
