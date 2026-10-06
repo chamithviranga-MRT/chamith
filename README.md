@@ -49,6 +49,10 @@ Follow-up chat ("What if I only want SBA loans?") re-ranks from the cache withou
 
 Public-cloud guide (share the demo in 5 minutes, or run the full app on Vercel + Neon): [`docs/DEPLOY.md`](docs/DEPLOY.md). Deployment helpers: `LENDMATCH_ACCESS_CODE` puts the whole site behind a password (a public deployment spends your API credits), `npm run cache:warm` fills the lender cache, `npm run cache:import` loads the bundled snapshot so a first test costs nothing.
 
+## As a Claude skill
+
+`.claude/skills/lendmatch/` is the matcher packaged as a skill: Claude does the borrower interview and fills the profile, a bundled offline script (`scripts/match.mjs`, Node 18+) runs the real engine (hard filters, scoring, cost math, follow-up re-ranking, claim audit) over the bundled lender snapshot, and Claude explains the results using only the script's numbers. Claude Code loads it automatically from this repository. For the Claude app, `docs/lendmatch.skill` is the same folder zipped: open it and press **Save skill**. Rebuild both after refreshing the data with `npm run demo:snapshot && npm run skill:build`. Like the demo, it reads a dated snapshot, flags it as stale after 7 days, and cannot browse the web.
+
 ## Standalone demo (one HTML file)
 
 `docs/lendmatch-demo.html` is the real UI and engine in a single self-contained file (~2 MB, no server, no network): open it in a browser. It ranks a frozen snapshot of the live-scraped lender data (18 lenders, 53 products, read 2026-10-05) with the real profile extraction, hard filters, scoring, cost math, verified reasoning, follow-up re-ranking, comparison table, "How I decided", DOCX/PDF export and delete-my-data. What it cannot do: browse the web, call Claude (extraction is the offline pattern matcher, reasoning is the verified template) or refresh a lender; a banner says so and shows how old the snapshot is (older than 7 days it is flagged as illustrative). Rebuild with fresh data: run the research, then `npm run build && npm run demo:snapshot && npm run demo:build`.

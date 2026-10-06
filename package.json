@@ -15,6 +15,7 @@
     "eval": "tsx scripts/eval.ts",
     "postinstall": "prisma generate",
     "eval:fixtures": "tsx scripts/eval.ts --mode=fixtures",
+    "skill:build": "node skill/build.mjs",
     "cache:import": "tsx scripts/import-snapshot.ts",
     "cache:warm": "tsx scripts/warm-cache.ts",
     "demo:snapshot": "tsx demo/export-snapshot.ts",

@@ -27,7 +27,7 @@ function amountGate({ profile, p, cfg }: Ctx): Gate {
   if (a === null) return g("amount", "Amount", "unknown", "Amount needed not provided.");
   if (p.productType === "business_card" && p.maxAmount === null) {
     const ceiling = cfg.assumptions.unpublishedCardLimitCeilingUsd;
-    if (a > ceiling) return g("amount", "Amount", "fail", `The issuer publishes no credit limit. Business cards are revolving credit set at the issuer's discretion, and we assume (an editable assumption, not lender data) they do not reach ${usd(ceiling)}; you need ${usd(a)}.`, { fix: `Use a card only for amounts up to about ${usd(ceiling)}, or ask the issuer what limit you would be offered.` });
+    if (a > ceiling) return g("amount", "Amount", "fail", `The issuer publishes no credit limit. Business cards are revolving credit set at the issuer's discretion, and we assume (an editable assumption, not lender data) they do not reach ${usd(ceiling)}; you need ${usd(a)}.`, { fix: `The issuer publishes no limit. We assume (not lender data) a card does not reach ${usd(a)}; ask the issuer what limit you would be offered, or request about ${usd(ceiling)} or less.` });
   }
   if (p.productType === "business_card" && p.maxAmount === null) return g("amount", "Amount", "borderline", `The credit limit is set at approval and is not published; confirm a card could reach ${usd(a)}.`, { fix: "Ask the issuer what credit limit you would be offered." });
   if (p.minAmount === null && p.maxAmount === null) return g("amount", "Amount", "unknown", "Lender does not publish an amount range.");

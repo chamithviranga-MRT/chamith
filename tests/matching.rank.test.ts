@@ -22,6 +22,7 @@ describe("hard gates", () => {
     expect(big.status).toBe("fail");
     expect(big.detail).toMatch(/editable assumption, not lender data/);
     expect(big.detail).toMatch(/\$50,000/);
+    expect(big.fix).toMatch(/not lender data/); // a paraphrase of the fix must not turn the assumption into a fact
     // a card that does publish a ceiling is still judged against it
     expect(gate(eg({ amountNeeded: 150000 }, { productType: "business_card", minAmount: null, maxAmount: 50000 }), "amount").status).toBe("fail");
     // other products with no published range stay 'unknown'
