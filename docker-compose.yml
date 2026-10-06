@@ -1,0 +1,46 @@
+# LendMatch for internal use: nothing is published to the internet by default.
+#   1. cp docker/internal.env.example .env   and fill it in
+#   2. docker compose up -d --build
+#   3. docker compose exec app npm run cache:import     (free starter data)   or   npm run cache:warm   (live, uses Firecrawl credits)
+# The app listens only on LENDMATCH_BIND (default 127.0.0.1). Put your VPN / reverse proxy / SSO in front of it.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lendmatch
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (letters and digits only)}
+      POSTGRES_DB: lendmatch
+    volumes:
+      - lendmatch-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lendmatch -d lendmatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # no "ports": the database is reachable only from the app container
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://lendmatch:${POSTGRES_PASSWORD}@db:5432/lendmatch?schema=public
+      LENDMATCH_ACCESS_CODE: ${LENDMATCH_ACCESS_CODE:?Set LENDMATCH_ACCESS_CODE in .env (the site refuses to start without it)}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY:-}
+      LENDMATCH_MAX_LENDERS: ${LENDMATCH_MAX_LENDERS:-40}
+      LENDMATCH_DISCOVERY: ${LENDMATCH_DISCOVERY:-on}
+    ports:
+      - "${LENDMATCH_BIND:-127.0.0.1}:${LENDMATCH_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  lendmatch-db:

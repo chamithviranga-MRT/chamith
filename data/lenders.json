@@ -1,0 +1,33 @@
+{
+  "_comment": "Seed registry = a STARTING POINT only. Domains are best-known entry points and are not guaranteed current; if a domain yields no usable product data the lender is marked 'data unavailable', never filled in. 'reliability' is an editorial 0-100 prior (see README); it never reflects commissions. Lenders with domain=null are located via Firecrawl search using 'searchQuery'.",
+  "lenders": [
+    { "slug": "live-oak-bank", "name": "Live Oak Bank", "category": "SBA", "groups": ["SBA"], "domain": "liveoakbank.com", "hints": ["SBA 7(a) loan", "SBA 504 loan"], "reliability": 85 },
+    { "slug": "newtek", "name": "Newtek", "category": "SBA", "groups": ["SBA"], "domain": "newtekone.com", "hints": ["SBA 7(a) loan", "SBA 504 loan", "business loan"], "reliability": 80 },
+    { "slug": "wells-fargo", "name": "Wells Fargo", "category": "SBA", "groups": ["SBA"], "domain": "wellsfargo.com", "hints": ["small business loan", "SBA loan", "business line of credit"], "reliability": 90 },
+    { "slug": "us-bank", "name": "U.S. Bank", "category": "SBA", "groups": ["SBA"], "domain": "usbank.com", "hints": ["small business loan", "SBA loan", "business line of credit"], "reliability": 90 },
+    { "slug": "td-bank", "name": "TD Bank", "category": "SBA", "groups": ["SBA"], "domain": "tdbank.com", "hints": ["small business loan", "SBA loan", "business line of credit"], "reliability": 90 },
+    { "slug": "lendio", "name": "Lendio", "category": "SBA", "groups": ["SBA"], "domain": "lendio.com", "hints": ["business loans", "SBA loans", "equipment financing"], "isMarketplace": true, "reliability": 70 },
+
+    { "slug": "chase", "name": "Chase", "category": "Conventional", "groups": ["Conventional"], "domain": "chase.com", "hints": ["business loan", "business line of credit", "equipment financing"], "reliability": 90 },
+    { "slug": "bank-of-america", "name": "Bank of America", "category": "Conventional", "groups": ["Conventional"], "domain": "bankofamerica.com", "hints": ["small business loan", "business line of credit"], "reliability": 90 },
+    { "slug": "citi", "name": "Citi", "category": "Conventional", "groups": ["Conventional"], "domain": null, "searchQuery": "Citi small business loans line of credit", "hints": ["small business loan"], "reliability": 90 },
+    { "slug": "pnc", "name": "PNC", "category": "Conventional", "groups": ["Conventional"], "domain": "pnc.com", "hints": ["small business loan", "business line of credit", "equipment financing"], "reliability": 90 },
+    { "slug": "capital-one", "name": "Capital One", "category": "Conventional", "groups": ["Conventional"], "domain": "capitalone.com", "hints": ["small business loan", "business line of credit", "business credit card"], "reliability": 90 },
+
+    { "slug": "bhg-financial", "name": "BHG Financial", "category": "Alternative", "groups": ["Alternative and direct"], "domain": "bhgfinancial.com", "hints": ["business loan", "term loan"], "reliability": 75 },
+    { "slug": "sofi", "name": "SoFi", "category": "Alternative", "groups": ["Alternative and direct", "Personal loans usable for startups"], "domain": "sofi.com", "hints": ["personal loan", "personal loan business use"], "reliability": 80 },
+    { "slug": "bluevine", "name": "Bluevine", "category": "Alternative", "groups": ["Alternative and direct"], "domain": "bluevine.com", "hints": ["business line of credit", "term loan", "invoice factoring"], "reliability": 75 },
+    { "slug": "ondeck", "name": "OnDeck", "category": "Alternative", "groups": ["Alternative and direct"], "domain": "ondeck.com", "hints": ["business term loan", "business line of credit"], "reliability": 75 },
+    { "slug": "amex-business-loc", "name": "American Express Business Line of Credit (formerly Kabbage)", "category": "Alternative", "groups": ["Alternative and direct"], "domain": null, "searchQuery": "American Express Business Line of Credit formerly Kabbage", "hints": ["business line of credit"], "reliability": 85 },
+    { "slug": "happen-bank", "name": "Happen Bank (formerly LendingClub)", "category": "Alternative", "groups": ["Alternative and direct"], "domain": null, "searchQuery": "Happen Bank formerly LendingClub business loans", "hints": ["business loan", "business line of credit"], "reliability": 70 },
+    { "slug": "funding-circle", "name": "Funding Circle", "category": "Alternative", "groups": ["Alternative and direct"], "domain": "fundingcircle.com", "hints": ["small business loan", "term loan"], "reliability": 75 },
+    { "slug": "credibly", "name": "Credibly", "category": "Alternative", "groups": ["Alternative and direct"], "domain": "credibly.com", "hints": ["working capital loan", "merchant cash advance", "business term loan"], "reliability": 65 },
+    { "slug": "national-funding", "name": "National Funding", "category": "Alternative", "groups": ["Alternative and direct"], "domain": "nationalfunding.com", "hints": ["working capital loan", "equipment financing", "business line of credit"], "reliability": 65 },
+    { "slug": "ibusiness-funding", "name": "iBusiness Funding", "category": "Alternative", "groups": ["Alternative and direct"], "domain": "ibusinessfunding.com", "hints": ["SBA loan", "business loan"], "reliability": 65 },
+
+    { "slug": "upstart", "name": "Upstart", "category": "Alternative", "groups": ["Personal loans usable for startups"], "domain": "upstart.com", "hints": ["personal loan", "personal loan business use"], "reliability": 75 },
+    { "slug": "prosper", "name": "Prosper", "category": "Alternative", "groups": ["Personal loans usable for startups"], "domain": "prosper.com", "hints": ["personal loan", "personal loan business use"], "reliability": 75 },
+    { "slug": "lightstream", "name": "LightStream", "category": "Conventional", "groups": ["Personal loans usable for startups"], "domain": "lightstream.com", "hints": ["personal loan", "loan for business"], "reliability": 85 },
+    { "slug": "discover-personal-loans", "name": "Discover Personal Loans", "category": "Conventional", "groups": ["Personal loans usable for startups"], "domain": "discover.com", "hints": ["personal loan"], "reliability": 85 }
+  ]
+}
