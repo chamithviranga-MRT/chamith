@@ -85,6 +85,8 @@ export async function askJson<T extends z.ZodType>(
 
 export function errorMessage(err: unknown): string {
   const via = provider() === "gateway" ? "Vercel AI Gateway" : "Anthropic API";
+  if (err instanceof Anthropic.APIError && /free tier/i.test(err.message))
+    return "Vercel AI Gateway needs credits for Claude (free tier can't use this model). Add credits in Vercel → AI Gateway.";
   if (err instanceof Anthropic.AuthenticationError) return `${via} rejected the credentials.`;
   if (err instanceof Anthropic.PermissionDeniedError || (err instanceof Anthropic.APIError && err.status === 402))
     return `${via} refused the request. If this is the gateway, check AI Gateway billing or credits in Vercel.`;
