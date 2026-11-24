@@ -55,6 +55,8 @@ export interface Candidate {
   location: string;
   yearsExp: number | null;
   linkedin: string;
+  email?: string | null;
+  phone?: string | null;
   scores: Record<string, number>;
   score: number;
   gates?: string | null;

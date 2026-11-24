@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import type { Candidate, Role, SourcedProfile, Stage } from "@/lib/types";
 import { FUNNEL, STAGES, normaliseLinkedIn, weightedScore } from "@/lib/types";
 
-type Tab = "overview" | "roles" | "sourcing" | "pipeline" | "outreach" | "reports";
+type Tab = "overview" | "roles" | "sourcing" | "assess" | "pipeline" | "outreach" | "reports";
 type Store = ReturnType<typeof useStore>;
 interface Status { exa: boolean; claude: boolean; model: string }
 
@@ -13,6 +13,7 @@ const TABS: { id: Tab; label: string; step: string }[] = [
   { id: "overview", label: "Overview", step: "" },
   { id: "roles", label: "Roles & scorecards", step: "1" },
   { id: "sourcing", label: "Sourcing", step: "2–3" },
+  { id: "assess", label: "Assess a CV or profile", step: "3" },
   { id: "pipeline", label: "Shortlist & pipeline", step: "4" },
   { id: "outreach", label: "Outreach drafts", step: "5" },
   { id: "reports", label: "Reports", step: "7" },
@@ -74,6 +75,7 @@ export default function App() {
         {tab === "overview" && <Overview store={store} go={setTab} open={setOpenId} />}
         {tab === "roles" && <Roles store={store} status={status} />}
         {tab === "sourcing" && <Sourcing store={store} status={status} open={setOpenId} />}
+        {tab === "assess" && <Assess store={store} status={status} open={setOpenId} />}
         {tab === "pipeline" && <Pipeline store={store} open={setOpenId} />}
         {tab === "outreach" && <Outreach store={store} open={setOpenId} />}
         {tab === "reports" && <Reports store={store} />}
@@ -480,6 +482,152 @@ function Sourcing({ store, status, open }: { store: Store; status: Status | null
 
 /* ---------------- Pipeline ---------------- */
 
+interface Assessment { mode: string; warning?: string; result: ScoreResult; source: string; url: string | null; email: string | null; phone: string | null; chars: number }
+
+function Assess({ store, status, open }: { store: Store; status: Status | null; open: (id: string) => void }) {
+  const { roles, candidates } = store.state;
+  const [roleId, setRoleId] = useState(roles[0].id);
+  const role = roles.find((r) => r.id === roleId)!;
+  const [mode, setMode] = useState<"cv" | "link">("cv");
+  const [file, setFile] = useState<File | null>(null);
+  const [url, setUrl] = useState("");
+  const [text, setText] = useState("");
+  const [needText, setNeedText] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [res, setRes] = useState<Assessment | null>(null);
+  const [addedId, setAddedId] = useState<string | null>(null);
+
+  const linkKey = url.trim() ? normaliseLinkedIn(url.trim()) : "";
+  const dupe = linkKey ? candidates.find((c) => c.roleId === roleId && normaliseLinkedIn(c.linkedin) === linkKey) : undefined;
+
+  async function run() {
+    setBusy(true); setErr(""); setRes(null); setAddedId(null);
+    try {
+      const fd = new FormData();
+      fd.append("role", JSON.stringify(role));
+      if (mode === "cv" && file) fd.append("file", file);
+      if (mode === "link") { fd.append("url", url.trim()); if (needText || text.trim()) fd.append("text", text); }
+      if (mode === "cv" && !file && text.trim()) fd.append("text", text);
+      const r = await fetch("/api/assess", { method: "POST", body: fd });
+      const json = await r.json();
+      if (json.needText) { setNeedText(true); throw new Error(json.error); }
+      if (!r.ok) throw new Error(json.error);
+      setRes(json);
+      if (json.warning) setErr(json.warning);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function add(stage: Stage) {
+    if (!res) return;
+    const s = res.result;
+    const now = new Date().toISOString();
+    const slug = (res.url ? normaliseLinkedIn(res.url) : `cv-${s.name}`).toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const id = `${roleId}-${slug}`;
+    const c: Candidate = {
+      id, roleId, name: s.name, title: s.title, company: s.company, location: s.location, yearsExp: s.yearsExp,
+      linkedin: res.url ?? "", email: res.email, phone: res.phone,
+      scores: s.scores, score: weightedScore(role.criteria, s.scores), evidence: s.evidence, redFlags: s.redFlags,
+      stage, openToWork: s.openToWork, overCap: s.overCap, source: `Manual assessment. ${res.source}`,
+      outreachAngle: s.outreachAngle || null, gates: s.basedInSriLanka ? "Location OK. Pacific hours to confirm." : "Based outside Sri Lanka.",
+      addedAt: now, history: [{ at: now, text: `Assessed manually and scored ${s.score}/100` }],
+    };
+    store.addCandidates([c], `Manual assessment for ${role.title}: ${s.name} scored ${s.score} and added as ${stageLabel(stage)}`);
+    setAddedId(id);
+  }
+
+  const canRun = mode === "cv" ? Boolean(file || text.trim()) : Boolean(url.trim() || text.trim());
+
+  return (
+    <>
+      <Header title="Assess a CV or profile" sub="Upload a CV or paste a LinkedIn link, then score it against a role's scorecard. Add the person to the pipeline if they fit." />
+      <section className="card">
+        <div className="row wrap">
+          <label className="grow">Role <RolePicker roles={roles} value={roleId} onChange={(v) => { setRoleId(v); setRes(null); }} /></label>
+        </div>
+        <div className="seg" role="tablist">
+          <button className={mode === "cv" ? "seg-b on" : "seg-b"} onClick={() => { setMode("cv"); setErr(""); setNeedText(false); }}>Upload a CV</button>
+          <button className={mode === "link" ? "seg-b on" : "seg-b"} onClick={() => { setMode("link"); setErr(""); }}>LinkedIn or profile link</button>
+        </div>
+
+        {mode === "cv" ? (
+          <label className="drop">
+            <input type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setRes(null); }} />
+            <span className="strong">{file ? file.name : "Choose a CV file"}</span>
+            <span className="muted small">{file ? `${Math.round(file.size / 1024)} KB` : "PDF, Word (.docx) or text, up to 8 MB"}</span>
+          </label>
+        ) : (
+          <>
+            <input className="full" placeholder="https://www.linkedin.com/in/…" value={url} onChange={(e) => { setUrl(e.target.value); setNeedText(false); setRes(null); }} inputMode="url" />
+            {dupe && <p className="note">Already in the tracker for this role: <button className="link" onClick={() => open(dupe.id)}>{dupe.name} · {stageLabel(dupe.stage)}</button></p>}
+            {needText && (
+              <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} placeholder="Open the profile, select all the page text, copy it and paste it here." />
+            )}
+            {!needText && <button className="link small" onClick={() => setNeedText(true)}>Or paste the profile text yourself</button>}
+          </>
+        )}
+
+        <div className="row wrap">
+          <button className="btn" onClick={run} disabled={busy || !canRun}>{busy ? "Reading and scoring…" : `Assess with ${status?.claude ? "Claude" : "demo scorer"}`}</button>
+          <span className="muted small">LinkedIn links are read from public data through Exa. Nothing logs in to LinkedIn.</span>
+        </div>
+        {err && <p className="error">{err}</p>}
+      </section>
+
+      {res && (
+        <section className="card">
+          <div className="drawer-head">
+            <span className={scoreClass(res.result.score) + " big"}>{res.result.score}</span>
+            <div className="grow">
+              <h2>{res.result.name}</h2>
+              <div className="muted">{res.result.title}{res.result.company ? ` · ${res.result.company}` : ""}</div>
+              <div className="muted small">{res.result.location}{res.result.yearsExp ? ` · ${res.result.yearsExp} yrs` : ""} · {role.title}</div>
+            </div>
+          </div>
+          <div className="row wrap">
+            {!res.result.basedInSriLanka && <span className="tag red">Outside Sri Lanka</span>}
+            {res.result.overCap && <span className="tag red">Likely over cap</span>}
+            {res.result.openToWork && <span className="tag green">Open to Work</span>}
+            {res.email && <span className="tag">{res.email}</span>}
+            {res.phone && <span className="tag">{res.phone}</span>}
+            {res.url && <a className="btn sm ghost" href={res.url} target="_blank" rel="noreferrer">Open profile</a>}
+          </div>
+          <h3>Scorecard</h3>
+          {role.criteria.map((cr) => (
+            <div className="crit" key={cr.key}>
+              <div className="crit-l small">{cr.label} <span className="muted">({cr.weight}%)</span></div>
+              <div className="dots">{[1, 2, 3, 4, 5].map((n) => <span key={n} className={n <= (res.result.scores[cr.key] ?? 0) ? "d on" : "d"} />)}</div>
+            </div>
+          ))}
+          <h3>Why</h3>
+          <ul className="reasons">{res.result.reasons.map((r, i) => <li key={i} className="small">{r}</li>)}</ul>
+          <h3>Evidence</h3><p>{res.result.evidence}</p>
+          <h3>Red flags</h3><p>{res.result.redFlags || "None noted."}</p>
+          {res.result.outreachAngle && (<><h3>Outreach angle</h3><p>{res.result.outreachAngle}</p></>)}
+          <p className="muted small">Read {res.chars.toLocaleString()} characters. {res.source}. Scored by {res.mode === "live" ? "Claude" : "the rule-based scorer"}.</p>
+          <div className="row wrap">
+            {addedId ? (
+              <><span className="tag green">Added to pipeline</span><button className="btn sm ghost" onClick={() => open(addedId)}>Open candidate</button></>
+            ) : dupe ? (
+              <span className="muted small">Already tracked for this role.</span>
+            ) : (
+              <>
+                <button className="btn" onClick={() => add("shortlisted")}>Add to shortlist</button>
+                <button className="btn ghost" onClick={() => add("sourced")}>Add as sourced</button>
+                <button className="btn ghost" onClick={() => add("rejected")}>Add as rejected</button>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+    </>
+  );
+}
+
 function Pipeline({ store, open }: { store: Store; open: (id: string) => void }) {
   const { roles, candidates } = store.state;
   const [roleId, setRoleId] = useState("all");
@@ -552,7 +700,9 @@ function Drawer({ c, store, close, goOutreach }: { c: Candidate; store: Store; c
         <div className="row wrap">
           <span className="tag">{stageLabel(c.stage)}</span>
           <Flags c={c} />
-          <a className="btn sm ghost" href={c.linkedin} target="_blank" rel="noreferrer">Open LinkedIn profile</a>
+          {c.linkedin && <a className="btn sm ghost" href={c.linkedin} target="_blank" rel="noreferrer">Open LinkedIn profile</a>}
+          {c.email && <a className="tag" href={`mailto:${c.email}`}>{c.email}</a>}
+          {c.phone && <span className="tag">{c.phone}</span>}
         </div>
 
         <h3>Scorecard</h3>
@@ -641,7 +791,7 @@ function DraftCard({ c, role, store, open }: { c: Candidate; role: Role; store: 
     try { await navigator.clipboard.writeText(text); setCopied(what); setTimeout(() => setCopied(""), 1500); } catch { /* ignore */ }
   }
 
-  const gmail = d ? `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(d.emailSubject)}&body=${encodeURIComponent(d.emailBody)}` : "#";
+  const gmail = d ? `https://mail.google.com/mail/?view=cm&fs=1${c.email ? `&to=${encodeURIComponent(c.email)}` : ""}&su=${encodeURIComponent(d.emailSubject)}&body=${encodeURIComponent(d.emailBody)}` : "#";
 
   return (
     <section className="card">
@@ -666,7 +816,7 @@ function DraftCard({ c, role, store, open }: { c: Candidate; role: Role; store: 
             <textarea rows={5} value={d.linkedinNote} onChange={(e) => edit({ linkedinNote: e.target.value })} />
             <div className="row">
               <button className="btn sm" onClick={() => copy(d.linkedinNote, "note")}>{copied === "note" ? "Copied" : "Copy note"}</button>
-              <a className="btn sm ghost" href={c.linkedin} target="_blank" rel="noreferrer">Open profile to send</a>
+              {c.linkedin && <a className="btn sm ghost" href={c.linkedin} target="_blank" rel="noreferrer">Open profile to send</a>}
             </div>
           </div>
           <div>
