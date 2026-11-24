@@ -17,7 +17,7 @@ The app opens seeded with the 45 researched profiles and both scorecards from `H
 | --- | --- | --- |
 | `EXA_API_KEY` | Sourcing shows a snapshot of real Exa results captured on 24 Nov 2026 | Live Exa people search |
 | Claude via Vercel AI Gateway | Rule-based demo scoring and template outreach; JD intake disabled | Claude (`anthropic/claude-opus-5.5`) scoring with reasons, outreach drafts and JD-to-scorecard |
-| `ACCESS_CODE` | Site is open to anyone with the link | Browser password prompt (any username, this password) |
+| `ACCESS_CODE` | Site is open to anyone with the link | Gated. Team link `/?team=<ACCESS_CODE>` signs a browser in for 90 days with no password; otherwise a browser password prompt (any username, this password) |
 
 Set them in Vercel under Project → Settings → Environment Variables, then redeploy. Never commit keys.
 

@@ -57,7 +57,7 @@ export default function App() {
         </div>
         <nav>
           {TABS.map((t) => (
-            <button key={t.id} className={tab === t.id ? "nav active" : "nav"} onClick={() => setTab(t.id)}>
+            <button key={t.id} className={tab === t.id ? "nav active" : "nav"} onClick={(e) => { setTab(t.id); e.currentTarget.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); window.scrollTo({ top: 0 }); }}>
               {t.step && <span className="step">{t.step}</span>}
               {t.label}
             </button>
