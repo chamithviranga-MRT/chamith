@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const json = (await res.json().catch(() => ({}))) as { results?: { title?: string; url: string }[]; error?: string };
     body.exaCheck = res.ok
       ? { ok: true, results: (json.results ?? []).map((r) => ({ title: r.title, url: r.url })) }
-      : { ok: false, status: res.status, error: json.error ?? "unknown" };
+      : { ok: false, status: res.status, error: json.error ?? "unknown", keyLength: exaKey()?.length, keyShape: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(exaKey() ?? "") ? "uuid" : "other" };
   }
   return NextResponse.json(body);
 }

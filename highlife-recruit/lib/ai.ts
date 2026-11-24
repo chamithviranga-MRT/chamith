@@ -26,7 +26,10 @@ export function hasClaude() {
 }
 /** Exa key; accepts a few common spellings of the variable name. */
 export function exaKey(): string | undefined {
-  return process.env.EXA_API_KEY || process.env.EXA_KEY || process.env.EXA_Key || process.env.EXA_API_Key || undefined;
+  const raw = process.env.EXA_API_KEY || process.env.EXA_KEY || process.env.EXA_Key || process.env.EXA_API_Key || "";
+  // Tolerate pasted whitespace, quotes or a "Bearer " prefix.
+  const key = raw.trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "").trim();
+  return key || undefined;
 }
 export function hasExa() {
   return Boolean(exaKey());
