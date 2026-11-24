@@ -24,8 +24,12 @@ export function provider(): Provider {
 export function hasClaude() {
   return provider() !== "none";
 }
+/** Exa key; accepts a few common spellings of the variable name. */
+export function exaKey(): string | undefined {
+  return process.env.EXA_API_KEY || process.env.EXA_KEY || process.env.EXA_Key || process.env.EXA_API_Key || undefined;
+}
 export function hasExa() {
-  return Boolean(process.env.EXA_API_KEY);
+  return Boolean(exaKey());
 }
 export function modelName() {
   return provider() === "gateway" ? GATEWAY_MODEL : DIRECT_MODEL;

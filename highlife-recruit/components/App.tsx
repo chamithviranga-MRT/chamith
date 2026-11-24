@@ -352,6 +352,7 @@ function Sourcing({ store, status, open }: { store: Store; status: Status | null
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setMode(json.mode);
+      if (json.warning) setErr(json.warning);
       setRows((json.profiles as SourcedProfile[]).map((p) => ({ profile: p, dupeOf: known.get(normaliseLinkedIn(p.url)) })));
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -417,7 +418,7 @@ function Sourcing({ store, status, open }: { store: Store; status: Status | null
         <div className="chips">
           {role.searchQueries.map((q) => <button key={q} className="chip" onClick={() => setQuery(q)}>{q}</button>)}
         </div>
-        {!status?.exa && <p className="note">Demo mode: shows a snapshot of real Exa results captured on 24 Nov 2026. Add EXA_API_KEY in Vercel for live searches.</p>}
+        {!status?.exa && <p className="note">Demo mode: shows a snapshot of real Exa results captured on 24 Nov 2026. Add an Exa API key in Vercel for live searches.</p>}
         {err && <p className="error">{err}</p>}
       </section>
 
