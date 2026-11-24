@@ -41,6 +41,12 @@ export default function App() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
+    // The team link signs people in; drop the code from the address bar afterwards.
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("team")) {
+      url.searchParams.delete("team");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
     fetch("/api/status").then((r) => r.json()).then(setStatus).catch(() => setStatus(null));
   }, []);
 
