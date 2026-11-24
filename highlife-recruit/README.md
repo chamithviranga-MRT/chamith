@@ -16,10 +16,14 @@ The app opens seeded with the 45 researched profiles and both scorecards from `H
 | Environment variable | Without it | With it |
 | --- | --- | --- |
 | `EXA_API_KEY` | Sourcing shows a snapshot of real Exa results captured on 24 Nov 2026 | Live Exa people search |
-| `ANTHROPIC_API_KEY` | Rule-based demo scoring and template outreach; JD intake disabled | Claude (`claude-opus-5-5`) scoring with reasons, outreach drafts and JD-to-scorecard |
+| Claude via Vercel AI Gateway | Rule-based demo scoring and template outreach; JD intake disabled | Claude (`anthropic/claude-opus-5.5`) scoring with reasons, outreach drafts and JD-to-scorecard |
 | `ACCESS_CODE` | Site is open to anyone with the link | Browser password prompt (any username, this password) |
 
 Set them in Vercel under Project → Settings → Environment Variables, then redeploy. Never commit keys.
+
+### Claude through Vercel AI Gateway
+
+On Vercel, Claude calls go through AI Gateway using the deployment's own OIDC token, so no API key is stored. Billing is through the Vercel team's AI Gateway credits (Vercel dashboard → AI Gateway). For local dev, run `npx vercel@latest ai-gateway setup` or `vercel env pull` to get a token, or set `AI_GATEWAY_API_KEY`. `ANTHROPIC_API_KEY` still works as a direct fallback when no gateway credential is present. If a Claude call fails, scoring and outreach fall back to the rule-based scorer and template so a demo never breaks.
 
 ## Data and guardrails
 

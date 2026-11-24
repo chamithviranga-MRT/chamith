@@ -1,7 +1,7 @@
 import type { Role, SourcedProfile } from "./types";
 import { weightedScore } from "./types";
 
-// Rule-based fallback scorer used only in demo mode (no ANTHROPIC_API_KEY).
+// Rule-based fallback scorer used only in demo mode (no AI Gateway or Anthropic credentials).
 const SIGNALS: Record<string, RegExp[]> = {
   sales: [/target/i, /award/i, /best/i, /top/i, /exceed|surpass/i, /new business|acquisition/i],
   outbound: [/cold call/i, /prospect/i, /lead/i, /outbound|dial/i, /canvass/i, /referral/i],
@@ -61,6 +61,6 @@ export function heuristicScore(role: Role, p: SourcedProfile) {
     openToWork: /open to work|seeking a new role|looking for new opportunities/i.test(text),
     overCap,
     outreachAngle: "",
-    reasons: ["Demo mode: rule-based keyword scoring. Add ANTHROPIC_API_KEY for Claude scoring with reasons."],
+    reasons: ["Demo mode: rule-based keyword scoring. Claude scoring with reasons runs once AI Gateway is on."],
   };
 }

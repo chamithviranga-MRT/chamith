@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   if (!jd || jd.trim().length < 80) return NextResponse.json({ error: "Paste the full job description." }, { status: 400 });
   if (!hasClaude()) {
     return NextResponse.json(
-      { error: "Turning a JD into a scorecard needs Claude. Add ANTHROPIC_API_KEY in Vercel to enable it." },
+      { error: "Turning a JD into a scorecard needs Claude. Turn on Vercel AI Gateway for this project to enable it." },
       { status: 400 },
     );
   }

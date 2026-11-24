@@ -84,6 +84,9 @@ Return one score per scorecard key.`,
       },
     });
   } catch (err) {
-    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
+    console.error("score failed", err);
+    const result = heuristicScore(role, profile);
+    result.reasons = [`Claude unavailable (${errorMessage(err)}). Fell back to rule-based scoring.`, ...result.reasons.slice(1)];
+    return NextResponse.json({ mode: "fallback", warning: errorMessage(err), result });
   }
 }

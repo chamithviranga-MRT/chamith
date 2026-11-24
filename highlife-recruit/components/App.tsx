@@ -298,7 +298,7 @@ function NewRole({ store, status, done }: { store: Store; status: Status | null;
   return (
     <section className="card accent">
       <h2>Turn a job description into a scorecard</h2>
-      {!status?.claude && <p className="note">Needs Claude. Add ANTHROPIC_API_KEY in Vercel to switch this on.</p>}
+      {!status?.claude && <p className="note">Needs Claude. Turn on Vercel AI Gateway for this project (or add AI_GATEWAY_API_KEY) to switch this on.</p>}
       <textarea rows={8} placeholder="Paste the full job description here" value={jd} onChange={(e) => setJd(e.target.value)} />
       <div className="row">
         <label>Monthly salary cap (LKR) <input value={cap} onChange={(e) => setCap(e.target.value)} inputMode="numeric" /></label>

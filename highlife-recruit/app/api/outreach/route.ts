@@ -43,6 +43,7 @@ Things to check later (do not mention): ${candidate.checkAtFirstCall ?? candidat
     );
     return NextResponse.json({ mode: "live", draft: { ...out, generatedBy: "Claude" } });
   } catch (err) {
-    return NextResponse.json({ error: errorMessage(err) }, { status: 502 });
+    console.error("outreach failed", err);
+    return NextResponse.json({ mode: "fallback", warning: errorMessage(err), draft: { ...templateDraft(role, candidate, sender), generatedBy: "Template (Claude unavailable)" } });
   }
 }
